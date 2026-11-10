@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Overfitting, Underfitting y Buen Ajuste</title>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:ital,wght@0,400;0,600;1,400&family=Spectral:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;600;700&family=Inconsolata:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#ffffff;--ink:#1a1a1a;--mid:#4a4a4a;--soft:#8a8a8a;
+    --rule:1px solid #e0e0e0;
+    --accent:#2d6a4f;--accent2:#40916c;--accent3:#d8f3dc;--accent4:#f0faf3;
+    --violet:#5c4197;--violet2:#7b5ea7;--violet3:#ede7f6;
+    --brown:#7b4f2e;--brown2:#a0522d;--brown3:#fdf0e8;
+    --blue:#1a3a6b;--blue3:#e8eef8;
+    --warn:#e07b00;--danger:#c0392b;--success:#2d6a4f;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Jost',sans-serif;background:#f4f4f2;color:var(--ink);min-height:100vh;}
+
+  nav{position:sticky;top:0;z-index:100;background:var(--ink);display:flex;align-items:center;padding:0 24px;height:44px;overflow-x:auto;}
+  nav button{background:none;border:none;color:#aaa;font-family:'Inconsolata',monospace;font-size:0.72rem;font-weight:600;padding:0 14px;height:44px;cursor:pointer;white-space:nowrap;letter-spacing:0.04em;border-bottom:2px solid transparent;transition:color .2s,border-color .2s;}
+  nav button:hover{color:#fff;}
+  nav button.active{color:#fff;border-bottom-color:var(--accent2);}
+  .nav-title{font-family:'Zilla Slab',serif;font-size:0.84rem;color:#fff;margin-right:20px;white-space:nowrap;flex-shrink:0;}
+
+  .slide{display:none;max-width:860px;margin:32px auto;background:var(--bg);padding:42px 48px;border:var(--rule);}
+  .slide.active{display:block;}
+
+  .slide-label{font-family:'Inconsolata',monospace;font-size:0.7rem;letter-spacing:0.1em;color:var(--soft);text-transform:uppercase;margin-bottom:10px;}
+  h2{font-family:'Zilla Slab',serif;font-size:2rem;font-weight:600;line-height:1.2;margin-bottom:10px;}
+  h2 em{font-style:italic;color:var(--accent);}
+  h3{font-family:'Zilla Slab',serif;font-size:1.1rem;font-weight:600;margin:16px 0 8px;}
+  p.lead{font-family:'Spectral',serif;font-size:1.05rem;color:var(--mid);line-height:1.6;margin-bottom:14px;}
+  p{font-size:0.88rem;color:var(--mid);line-height:1.65;margin-bottom:8px;}
+  hr.rule{border:none;border-top:var(--rule);margin:18px 0;}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:32px;}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;}
+
+  .explain-example{background:#f8f8f6;border-left:3px solid var(--accent2);padding:12px 16px;font-family:'Inconsolata',monospace;font-size:0.8rem;line-height:1.9;color:var(--mid);margin:8px 0;}
+  .callout{background:var(--accent4);border:1px solid #b7e4c7;padding:12px 16px;margin:10px 0;}
+  .callout p{color:var(--ink);font-size:0.84rem;}
+  .callout.violet{background:var(--violet3);border-color:#c5b3e6;}
+  .callout.brown{background:var(--brown3);border-color:#d4a87a;}
+  .callout.danger{background:#fdf0f0;border-color:#e8a0a0;}
+  .callout.warn{background:#fdf6e8;border-color:#e8c87a;}
+
+  table{width:100%;border-collapse:collapse;font-size:0.82rem;margin:8px 0;}
+  th{background:var(--ink);color:#fff;font-family:'Inconsolata',monospace;font-size:0.72rem;letter-spacing:0.05em;padding:7px 10px;text-align:left;}
+  td{padding:7px 10px;border-bottom:var(--rule);color:var(--mid);vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+
+  code{font-family:'Inconsolata',monospace;font-size:0.82em;background:#f0f0ee;padding:1px 5px;color:var(--brown);}
+
+  .cover-tag{font-family:'Inconsolata',monospace;font-size:0.72rem;letter-spacing:0.12em;color:var(--soft);text-transform:uppercase;margin-bottom:14px;}
+  .cover-h1{font-family:'Zilla Slab',serif;font-size:2.8rem;font-weight:600;line-height:1.15;margin-bottom:18px;}
+  .cover-h1 em{font-style:italic;color:var(--accent);}
+  .cover-sub{font-family:'Spectral',serif;font-size:1.1rem;color:var(--mid);line-height:1.65;max-width:560px;margin-bottom:28px;}
+  .cover-meta{display:flex;gap:28px;border-top:var(--rule);padding-top:20px;flex-wrap:wrap;}
+  .cover-meta-item{display:flex;flex-direction:column;gap:2px;}
+  .cover-meta-item strong{font-size:1.1rem;font-weight:700;color:var(--ink);}
+  .cover-meta-item{font-size:0.78rem;color:var(--soft);}
+
+  .btn{display:inline-block;background:var(--accent);color:#fff;border:none;font-family:'Jost',sans-serif;font-size:0.78rem;font-weight:600;padding:7px 18px;cursor:pointer;margin:4px 4px 4px 0;transition:background .2s;}
+  .btn:hover{background:var(--accent2);}
+  .btn.danger{background:var(--danger);}
+  .btn.warn{background:var(--warn);}
+  .btn.violet{background:var(--violet);}
+
+  input[type=range]{width:100%;accent-color:var(--accent);}
+
+  .metric-box{border:var(--rule);padding:12px 16px;text-align:center;}
+  .metric-box .val{font-family:'Zilla Slab',serif;font-size:1.8rem;font-weight:600;color:var(--accent);}
+  .metric-box .lbl{font-family:'Inconsolata',monospace;font-size:0.68rem;color:var(--soft);letter-spacing:0.08em;text-transform:uppercase;margin-top:4px;}
+
+  canvas{display:block;}
+  .canvas-wrap{border:var(--rule);padding:8px;background:#fafaf8;}
+
+  .diag-card{border:2px solid #e0e0e0;padding:16px;margin:8px 0;transition:border-color .2s,background .2s;}
+  .diag-card.over{border-color:var(--danger);background:#fdf0f0;}
+  .diag-card.good{border-color:var(--accent);background:var(--accent4);}
+  .diag-card.under{border-color:var(--warn);background:#fdf6e8;}
+
+  .diag-label{font-family:'Inconsolata',monospace;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;}
+  .diag-label.over{color:var(--danger);}
+  .diag-label.good{color:var(--accent);}
+  .diag-label.under{color:var(--warn);}
+
+  .code-block{background:#1e1e1e;color:#d4d4d4;font-family:'Inconsolata',monospace;font-size:0.78rem;line-height:1.8;padding:16px 20px;margin:10px 0;overflow-x:auto;}
+  .kw{color:#569cd6;}.fn{color:#dcdcaa;}.st{color:#ce9178;}.cm{color:#6a9955;}.nm{color:#b5cea8;}
+
+  @media(max-width:640px){.grid-2,.grid-3{grid-template-columns:1fr;}.slide{padding:24px 20px;}h2{font-size:1.5rem;}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-title">Ajuste del Modelo</div>
+  <button class="active" onclick="goTo(1,this)">01 Portada</button>
+  <button onclick="goTo(2,this)">02 Los tres casos</button>
+  <button onclick="goTo(3,this)">03 Deteccion</button>
+  <button onclick="goTo(4,this)">04 Simulador</button>
+  <button onclick="goTo(5,this)">05 Soluciones</button>
+  <button onclick="goTo(6,this)">06 Codigo</button>
+</nav>
+
+<!-- SLIDE 1 -->
+<section class="slide active" id="slide-1">
+  <div class="cover-tag">Diagnostico de Modelos — NYC Taxi Boosting</div>
+  <div class="cover-h1">Overfitting,<br>Underfitting y<br><em>Buen Ajuste</em></div>
+  <p class="cover-sub">Todo modelo de machine learning puede caer en uno de tres estados: memorizar los datos de entrenamiento sin generalizar, no aprender la señal suficiente, o encontrar el equilibrio entre ambos. Diagnosticar el estado del modelo es tan importante como entrenarlo.</p>
+  <div class="cover-meta">
+    <div class="cover-meta-item"><strong>3</strong>Escenarios</div>
+    <div class="cover-meta-item"><strong>Interactivo</strong>Simulador en vivo</div>
+    <div class="cover-meta-item"><strong>AUC-ROC</strong>Metrica de diagnostico</div>
+    <div class="cover-meta-item"><strong>NYC Taxi</strong>Boosting</div>
+  </div>
+  <hr class="rule">
+  <div class="grid-3" style="margin-top:20px">
+    <div class="diag-card over">
+      <div class="diag-label over">Overfitting</div>
+      <p style="font-size:0.83rem">El modelo memoriza el train. Rinde muy bien en entrenamiento pero falla en datos nuevos. Aprende el ruido, no la señal.</p>
+      <div style="font-family:'Inconsolata',monospace;font-size:0.76rem;margin-top:8px;color:var(--danger)">AUC train mucho mayor que AUC test<br>diff mayor a 0.05</div>
+    </div>
+    <div class="diag-card good">
+      <div class="diag-label good">Buen Ajuste</div>
+      <p style="font-size:0.83rem">El modelo generaliza. El rendimiento en train y test es similar y aceptable. Captura la señal real sin memorizar el ruido.</p>
+      <div style="font-family:'Inconsolata',monospace;font-size:0.76rem;margin-top:8px;color:var(--accent)">AUC train similar a AUC test<br>diff menor a 0.02</div>
+    </div>
+    <div class="diag-card under">
+      <div class="diag-label under">Underfitting</div>
+      <p style="font-size:0.83rem">El modelo es demasiado simple. No captura la estructura de los datos. Rinde mal tanto en train como en test.</p>
+      <div style="font-family:'Inconsolata',monospace;font-size:0.76rem;margin-top:8px;color:var(--warn)">AUC train similar a AUC test<br>pero ambos menores a 0.65</div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 2 -->
+<section class="slide" id="slide-2">
+  <div class="slide-label">01 — Los tres casos</div>
+  <h2>Los tres escenarios de <em>ajuste</em></h2>
+  <p class="lead">El diagnostico se hace comparando el AUC-ROC en entrenamiento con el AUC-ROC en prueba. La diferencia entre ambos, junto con el nivel absoluto de las metricas, revela el estado del modelo.</p>
+  <hr class="rule">
+
+  <div class="diag-card over" style="margin-bottom:14px">
+    <div class="diag-label over">Caso 1 — Overfitting (sobreajuste)</div>
+    <div class="grid-2" style="gap:20px;margin-top:8px">
+      <div>
+        <div class="explain-example">AUC Train: 0.95<br>AUC Test:  0.63<br>Diferencia: 0.32  &lt;-- ALARMA</div>
+        <p style="font-size:0.83rem;margin-top:8px">El modelo memorizo los 440K viajes del train, incluyendo el ruido. Un taxi desde JFK que pago en efectivo a las 3am — caso atipico — se aprende como regla en lugar de tratarse como excepcion.</p>
+      </div>
+      <div>
+        <p style="font-size:0.83rem"><strong>Causa tipica en Boosting:</strong></p>
+        <div class="explain-example">max_depth muy alto (8-12)<br>n_estimators muy alto (500+)<br>learning_rate alto (0.3+)<br>sin regularizacion (gamma=0)<br>sin subsampling</div>
+        <div class="callout danger" style="margin-top:8px"><p>El modelo aprende hasta el ultimo detalle del train, incluyendo errores de GPS y tarifas mal registradas. Al ver datos nuevos, ese conocimiento no sirve.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diag-card good" style="margin-bottom:14px">
+    <div class="diag-label good">Caso 2 — Buen Ajuste</div>
+    <div class="grid-2" style="gap:20px;margin-top:8px">
+      <div>
+        <div class="explain-example">AUC Train: 0.72<br>AUC Test:  0.70<br>Diferencia: 0.02  &lt;-- IDEAL</div>
+        <p style="font-size:0.83rem;margin-top:8px">El modelo aprendio patrones reales: viajes desde zonas de alta propension a tarjeta, tarifas altas, distancias largas. Estos patrones se replican en datos nuevos porque son reales, no ruido.</p>
+      </div>
+      <div>
+        <p style="font-size:0.83rem"><strong>Configuracion tipica:</strong></p>
+        <div class="explain-example">max_depth = 4-6<br>learning_rate = 0.05<br>n_estimators = 200-300<br>subsample = 0.8<br>gamma = 0.1 (XGBoost)</div>
+        <div class="callout" style="margin-top:8px"><p>El modelo generaliza: lo que aprende en el train se mantiene en el test porque captura la estructura real del fenomeno, no los accidentes de la muestra.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diag-card under">
+    <div class="diag-label under">Caso 3 — Underfitting (subajuste)</div>
+    <div class="grid-2" style="gap:20px;margin-top:8px">
+      <div>
+        <div class="explain-example">AUC Train: 0.61<br>AUC Test:  0.59<br>Diferencia: 0.02  &lt;-- pequeña<br>Pero ambos son bajos &lt;-- PROBLEMA</div>
+        <p style="font-size:0.83rem;margin-top:8px">El modelo no logra capturar la señal. Un arbol muy simple solo aprende "si fare_amount mayor a 12 entonces Tarjeta", perdiendo toda la informacion de zona, distancia e interacciones.</p>
+      </div>
+      <div>
+        <p style="font-size:0.83rem"><strong>Causa tipica:</strong></p>
+        <div class="explain-example">max_depth muy bajo (1-2)<br>n_estimators muy bajo (&lt;50)<br>learning_rate muy bajo (0.001)<br>regularizacion excesiva<br>features insuficientes</div>
+        <div class="callout warn" style="margin-top:8px"><p>El underfitting es opuesto al overfitting pero igualmente problematico. El modelo no sirve ni para el train ni para el test. Es demasiado ingenuo para el problema.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 3 -->
+<section class="slide" id="slide-3">
+  <div class="slide-label">02 — Deteccion</div>
+  <h2>Como <em>detectarlos</em></h2>
+  <p class="lead">La herramienta principal es la curva de aprendizaje: AUC-ROC en train y test a lo largo de las iteraciones del modelo. El patron de las dos curvas revela el diagnostico.</p>
+  <hr class="rule">
+
+  <div class="grid-3" style="margin-bottom:20px">
+    <div>
+      <h3 style="color:var(--danger)">Overfitting</h3>
+      <div class="canvas-wrap"><canvas id="cvOver" width="240" height="160"></canvas></div>
+      <div class="explain-example" style="margin-top:8px;font-size:0.74rem">Train: sube y sigue subiendo<br>Test: sube y luego baja<br>Las curvas se separan</div>
+    </div>
+    <div>
+      <h3 style="color:var(--accent)">Buen Ajuste</h3>
+      <div class="canvas-wrap"><canvas id="cvGood" width="240" height="160"></canvas></div>
+      <div class="explain-example" style="margin-top:8px;font-size:0.74rem">Train: sube y se estabiliza<br>Test: sube y se estabiliza<br>Las curvas convergen</div>
+    </div>
+    <div>
+      <h3 style="color:var(--warn)">Underfitting</h3>
+      <div class="canvas-wrap"><canvas id="cvUnder" width="240" height="160"></canvas></div>
+      <div class="explain-example" style="margin-top:8px;font-size:0.74rem">Train: sube muy poco<br>Test: sube muy poco<br>Ambas curvas quedan bajas</div>
+    </div>
+  </div>
+
+  <hr class="rule">
+  <h3>Reglas de diagnostico numericas</h3>
+  <table style="margin-top:8px">
+    <thead><tr><th>Condicion</th><th>Diagnostico</th><th>Gravedad</th></tr></thead>
+    <tbody>
+      <tr><td><code>diff mayor a 0.10</code></td><td style="color:var(--danger)">Overfitting severo</td><td>Critico — el modelo no sirve en produccion</td></tr>
+      <tr><td><code>diff mayor a 0.05</code></td><td style="color:var(--danger)">Overfitting moderado</td><td>Requiere correccion antes de usar</td></tr>
+      <tr><td><code>diff menor a 0.02</code> y AUC test mayor a 0.70</td><td style="color:var(--accent)">Buen ajuste</td><td>Modelo listo para produccion</td></tr>
+      <tr><td><code>diff menor a 0.02</code> y AUC test menor a 0.65</td><td style="color:var(--warn)">Underfitting</td><td>Modelo demasiado simple</td></tr>
+      <tr><td><code>diff entre 0.02 y 0.05</code></td><td style="color:var(--mid)">Zona gris</td><td>Aceptable segun el contexto</td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid-2" style="margin-top:16px">
+    <div class="callout">
+      <p><strong>En NYC Taxi con 7 features sin leakage:</strong> un AUC test de 0.63-0.73 es razonable. El problema no es el modelo, son las variables disponibles. Las zonas tienen poder predictivo limitado cuando no incluimos tip_amount.</p>
+    </div>
+    <div class="callout violet">
+      <p><strong>La trampa de la accuracy:</strong> con 84/16 de desbalance, un modelo que predice siempre Tarjeta tiene accuracy de 0.84 pero AUC-ROC de 0.50. Siempre usar AUC-ROC para el diagnostico de ajuste, no accuracy.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 4 -->
+<section class="slide" id="slide-4">
+  <div class="slide-label">03 — Simulador</div>
+  <h2>Simulador <em>interactivo</em></h2>
+  <p class="lead">Ajusta los valores de AUC en train y test para ver el diagnostico automatico. Experimenta con los escenarios preconfigurados de los modelos Boosting en NYC Taxi.</p>
+  <hr class="rule">
+
+  <div class="grid-2">
+    <div>
+      <h3>Ingresa los valores de tu modelo</h3>
+      <div style="border:var(--rule);padding:16px">
+        <div style="margin-bottom:14px">
+          <label style="font-size:0.76rem;color:var(--mid);display:block;margin-bottom:4px">AUC-ROC en TRAIN: <span id="trainVal" style="font-weight:600;font-family:'Inconsolata',monospace">0.72</span></label>
+          <input type="range" id="trainSlider" min="50" max="99" value="72">
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="font-size:0.76rem;color:var(--mid);display:block;margin-bottom:4px">AUC-ROC en TEST: <span id="testVal" style="font-weight:600;font-family:'Inconsolata',monospace">0.70</span></label>
+          <input type="range" id="testSlider" min="50" max="99" value="70">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px">
+          <button class="btn danger" onclick="setScenario(95,63)">Overfit severo</button>
+          <button class="btn" onclick="setScenario(72,70)">Buen ajuste</button>
+          <button class="btn warn" onclick="setScenario(61,59)">Underfitting</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+          <button class="btn violet" onclick="setScenario(78,74)">XGBoost tipico</button>
+          <button class="btn danger" style="opacity:0.8" onclick="setScenario(88,68)">Overfit moderado</button>
+        </div>
+      </div>
+
+      <h3 style="margin-top:14px">Escenarios reales NYC Taxi</h3>
+      <table>
+        <thead><tr><th>Modelo</th><th>Train est.</th><th>Test est.</th><th>Diagnostico</th></tr></thead>
+        <tbody>
+          <tr><td>CART baseline</td><td>0.68</td><td>0.63</td><td style="color:var(--warn)">Leve underfit</td></tr>
+          <tr><td>AdaBoost</td><td>0.65</td><td>0.62</td><td style="color:var(--warn)">Leve underfit</td></tr>
+          <tr><td>GBM</td><td>0.72</td><td>0.65</td><td style="color:var(--accent)">Aceptable</td></tr>
+          <tr><td>XGBoost</td><td>0.76</td><td>0.70</td><td style="color:var(--accent)">Buen ajuste</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div>
+      <h3>Diagnostico</h3>
+      <div id="diagResult" style="border:2px solid #e0e0e0;padding:20px;min-height:120px;margin-bottom:14px;transition:border-color .3s,background .3s">
+        <div id="diagLabel" style="font-family:'Inconsolata',monospace;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px"></div>
+        <div id="diagTitle" style="font-family:'Zilla Slab',serif;font-size:1.6rem;font-weight:600;margin-bottom:8px"></div>
+        <div id="diagDetail" style="font-size:0.84rem;color:var(--mid)"></div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="simCanvas" width="360" height="200"></canvas>
+      </div>
+      <p style="font-size:0.74rem;color:var(--soft);margin-top:4px">Verde = Train, Azul = Test. La zona sombreada es la brecha de generalizacion.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 5 -->
+<section class="slide" id="slide-5">
+  <div class="slide-label">04 — Soluciones</div>
+  <h2>Que hacer segun el <em>diagnostico</em></h2>
+  <p class="lead">Cada tipo de desajuste tiene un conjunto de acciones correctivas especificas sobre los hiperparametros del modelo.</p>
+  <hr class="rule">
+
+  <div class="grid-2" style="margin-bottom:20px">
+    <div class="diag-card over">
+      <div class="diag-label over">Si hay Overfitting — reducir complejidad</div>
+      <table style="margin-top:10px">
+        <thead><tr><th>Hiperparametro</th><th>Accion</th></tr></thead>
+        <tbody>
+          <tr><td><code>max_depth</code></td><td>Reducir (ej: de 8 a 4)</td></tr>
+          <tr><td><code>n_estimators</code></td><td>Reducir o usar early stopping</td></tr>
+          <tr><td><code>learning_rate</code></td><td>Reducir (ej: de 0.1 a 0.05)</td></tr>
+          <tr><td><code>subsample</code></td><td>Reducir (ej: de 1.0 a 0.8)</td></tr>
+          <tr><td><code>colsample_bytree</code></td><td>Reducir (ej: de 1.0 a 0.7)</td></tr>
+          <tr><td><code>gamma</code></td><td>Aumentar (ej: de 0 a 0.1)</td></tr>
+          <tr><td><code>reg_alpha</code></td><td>Aumentar regularizacion L1</td></tr>
+          <tr><td><code>reg_lambda</code></td><td>Aumentar regularizacion L2</td></tr>
+          <tr><td><code>min_samples_leaf</code></td><td>Aumentar (GBM)</td></tr>
+        </tbody>
+      </table>
+      <div class="callout danger" style="margin-top:10px">
+        <p><strong>Early stopping en XGBoost</strong> es la solucion mas elegante: el modelo se detiene automaticamente cuando el AUC en test deja de mejorar, evitando el overfitting sin adivinar n_estimators.</p>
+      </div>
+    </div>
+    <div class="diag-card under">
+      <div class="diag-label under">Si hay Underfitting — aumentar complejidad</div>
+      <table style="margin-top:10px">
+        <thead><tr><th>Hiperparametro</th><th>Accion</th></tr></thead>
+        <tbody>
+          <tr><td><code>max_depth</code></td><td>Aumentar (ej: de 2 a 5)</td></tr>
+          <tr><td><code>n_estimators</code></td><td>Aumentar (ej: de 50 a 200)</td></tr>
+          <tr><td><code>learning_rate</code></td><td>Ajustar — ni muy alto ni muy bajo</td></tr>
+          <tr><td><code>gamma</code></td><td>Reducir o poner en 0</td></tr>
+          <tr><td><code>reg_alpha</code></td><td>Reducir regularizacion</td></tr>
+          <tr><td><code>min_samples_leaf</code></td><td>Reducir (GBM)</td></tr>
+          <tr><td>Features</td><td>Agregar variables mas informativas</td></tr>
+          <tr><td>Interacciones</td><td>Crear features combinadas</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warn" style="margin-top:10px">
+        <p><strong>En NYC Taxi con 7 features sin leakage</strong>, el underfitting puede ser estructural: las variables disponibles tienen poder predictivo limitado. Agregar hora del dia o dia de la semana puede ayudar.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr class="rule">
+  <h3>El trade-off fundamental — curva de complejidad</h3>
+  <div class="canvas-wrap" style="margin-top:10px">
+    <canvas id="tradeoffCanvas" width="760" height="180"></canvas>
+  </div>
+  <div class="grid-3" style="margin-top:14px">
+    <div class="callout danger"><p><strong>Zona izquierda:</strong> modelo simple. Tanto train como test tienen AUC bajo. Underfitting.</p></div>
+    <div class="callout"><p><strong>Zona central:</strong> complejidad optima. Train y test son similares y altos. Buen ajuste.</p></div>
+    <div class="callout brown"><p><strong>Zona derecha:</strong> modelo complejo. Train muy alto, test baja. Overfitting.</p></div>
+  </div>
+</section>
+
+<!-- SLIDE 6 -->
+<section class="slide" id="slide-6">
+  <div class="slide-label">05 — Codigo</div>
+  <h2>Codigo de <em>diagnostico</em></h2>
+  <p class="lead">Codigo listo para Jupyter. Asume ada, gbm, model_xgb, X_train, X_test, y_train, y_test del pipeline de NYC Taxi.</p>
+  <hr class="rule">
+
+  <div class="code-block">
+<span class="cm"># ═══════════════════════════════════════════════════════════════════</span>
+<span class="cm"># DIAGNOSTICO DE OVERFITTING / UNDERFITTING — Modelos Boosting</span>
+<span class="cm"># ═══════════════════════════════════════════════════════════════════</span>
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> roc_auc_score
+
+modelos = {
+    <span class="st">"AdaBoost"</span>         : ada,
+    <span class="st">"Gradient Boosting"</span>: gbm,
+    <span class="st">"XGBoost"</span>          : model_xgb,
+}
+
+print(<span class="st">"="</span> * <span class="nm">65</span>)
+print(f<span class="st">"{'Modelo':<22} {'AUC Train':>10} {'AUC Test':>10} {'Diff':>8} {'Diagnostico':>14}"</span>)
+print(<span class="st">"="</span> * <span class="nm">65</span>)
+
+<span class="kw">for</span> nombre, modelo <span class="kw">in</span> modelos.items():
+    y_proba_train = modelo.predict_proba(X_train)[:, <span class="nm">1</span>]
+    auc_train = roc_auc_score(y_train, y_proba_train)
+    y_proba_test = modelo.predict_proba(X_test)[:, <span class="nm">1</span>]
+    auc_test = roc_auc_score(y_test, y_proba_test)
+    diff = auc_train - auc_test
+
+    <span class="kw">if</span> diff > <span class="nm">0.10</span>:
+        diag = <span class="st">"OVERFIT SEVERO"</span>
+    <span class="kw">elif</span> diff > <span class="nm">0.05</span>:
+        diag = <span class="st">"OVERFIT MODERADO"</span>
+    <span class="kw">elif</span> auc_test < <span class="nm">0.65</span>:
+        diag = <span class="st">"UNDERFITTING"</span>
+    <span class="kw">elif</span> diff <= <span class="nm">0.02</span>:
+        diag = <span class="st">"BUEN AJUSTE"</span>
+    <span class="kw">else</span>:
+        diag = <span class="st">"ACEPTABLE"</span>
+
+    print(f<span class="st">"{nombre:<22} {auc_train:>10.4f} {auc_test:>10.4f} {diff:>8.4f} {diag:>14}"</span>)
+
+print(<span class="st">"="</span> * <span class="nm">65</span>)
+
+<span class="cm"># ── Curva de aprendizaje GBM (por iteracion) ──────────────────</span>
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+aucs_train, aucs_test = [], []
+<span class="kw">for</span> proba_train, proba_test <span class="kw">in</span> zip(
+    gbm.staged_predict_proba(X_train),
+    gbm.staged_predict_proba(X_test)
+):
+    aucs_train.append(roc_auc_score(y_train, proba_train[:, <span class="nm">1</span>]))
+    aucs_test.append(roc_auc_score(y_test,  proba_test[:,  <span class="nm">1</span>]))
+
+fig, ax = plt.subplots(figsize=(<span class="nm">8</span>, <span class="nm">4</span>))
+ax.plot(aucs_train, label=<span class="st">"Train"</span>, color=<span class="st">"#2d6a4f"</span>, lw=<span class="nm">2</span>)
+ax.plot(aucs_test,  label=<span class="st">"Test"</span>,  color=<span class="st">"#1a3a6b"</span>, lw=<span class="nm">2</span>)
+ax.fill_between(range(len(aucs_train)),
+                aucs_train, aucs_test,
+                alpha=<span class="nm">0.12</span>, color=<span class="st">"#c0392b"</span>, label=<span class="st">"Brecha"</span>)
+ax.set_xlabel(<span class="st">"Iteracion (n_estimators)"</span>)
+ax.set_ylabel(<span class="st">"AUC-ROC"</span>)
+ax.set_title(<span class="st">"Curva de aprendizaje — GBM — NYC Taxi"</span>)
+ax.legend()
+plt.tight_layout()
+plt.show()
+  </div>
+
+  <div class="callout" style="margin-top:14px">
+    <p><strong>staged_predict_proba</strong> es un metodo exclusivo de GBM en sklearn. Devuelve las predicciones de probabilidad despues de cada arbol, permitiendo ver como evolucionan train y test a lo largo del entrenamiento. XGBoost tiene el equivalente via <code>eval_set</code> en el <code>fit</code>.</p>
+  </div>
+</section>
+
+<script>
+(function(){
+
+  function goTo(n,btn){
+    document.querySelectorAll('.slide').forEach(s=>s.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+    document.getElementById('slide-'+n).classList.add('active');
+    btn.classList.add('active');
+    if(n===3) drawCurves();
+    if(n===4){initSim();}
+    if(n===5) drawTradeoff();
+  }
+  window.goTo=goTo;
+
+  // ── SLIDE 3 ──────────────────────────────────────────────────────
+  function drawCurves(){
+    drawLC('cvOver','over');
+    drawLC('cvGood','good');
+    drawLC('cvUnder','under');
+  }
+
+  function drawLC(id,type){
+    const cv=document.getElementById(id);
+    if(!cv)return;
+    const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+    ctx.clearRect(0,0,W,H);
+    const N=100,pad={t:14,r:14,b:28,l:36},pw=W-pad.l-pad.r,ph=H-pad.t-pad.b;
+    const minY=0.50,maxY=1.0;
+    const tr=[],te=[];
+    for(let i=0;i<=N;i++){
+      const t=i/N;
+      if(type==='over'){
+        tr.push(0.55+0.43*(1-Math.exp(-t*5)));
+        let ts=0.55+0.15*(1-Math.exp(-t*3));
+        if(t>0.3) ts-=(t-0.3)*0.1;
+        te.push(Math.max(ts,0.50));
+      } else if(type==='good'){
+        tr.push(0.55+0.17*(1-Math.exp(-t*4)));
+        te.push(0.55+0.15*(1-Math.exp(-t*3.5)));
+      } else {
+        tr.push(0.55+0.07*(1-Math.exp(-t*3)));
+        te.push(0.54+0.06*(1-Math.exp(-t*2.5)));
+      }
+    }
+    ctx.strokeStyle='#eee';ctx.lineWidth=1;
+    [0.5,0.6,0.7,0.8,0.9,1.0].forEach(v=>{
+      const y=pad.t+ph-(v-minY)/(maxY-minY)*ph;
+      ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+pw,y);ctx.stroke();
+      ctx.fillStyle='#bbb';ctx.font='9px Inconsolata';ctx.fillText(v.toFixed(1),2,y+3);
+    });
+    // fill
+    const fc=type==='over'?'rgba(192,57,43,0.10)':'rgba(45,106,79,0.07)';
+    ctx.beginPath();
+    tr.forEach((v,i)=>{const x=pad.l+i/N*pw,y=pad.t+ph-(v-minY)/(maxY-minY)*ph;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    for(let i=N;i>=0;i--){const x=pad.l+i/N*pw,y=pad.t+ph-(te[i]-minY)/(maxY-minY)*ph;ctx.lineTo(x,y);}
+    ctx.closePath();ctx.fillStyle=fc;ctx.fill();
+    const tc=type==='over'?'#c0392b':type==='under'?'#e07b00':'#1a3a6b';
+    [[tr,'#2d6a4f'],[te,tc]].forEach(([pts,col])=>{
+      ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=2;
+      pts.forEach((v,i)=>{const x=pad.l+i/N*pw,y=pad.t+ph-(v-minY)/(maxY-minY)*ph;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+      ctx.stroke();
+    });
+    ctx.font='9px Inconsolata';
+    ctx.fillStyle='#2d6a4f';ctx.fillRect(pad.l,H-16,10,7);
+    ctx.fillStyle='#555';ctx.fillText('Train',pad.l+13,H-10);
+    ctx.fillStyle=tc;ctx.fillRect(pad.l+50,H-16,10,7);
+    ctx.fillStyle='#555';ctx.fillText('Test',pad.l+63,H-10);
+  }
+
+  // ── SLIDE 4 ──────────────────────────────────────────────────────
+  function initSim(){
+    document.getElementById('trainSlider').oninput=updateDiag;
+    document.getElementById('testSlider').oninput=updateDiag;
+    updateDiag();
+  }
+  function setScenario(tr,te){
+    document.getElementById('trainSlider').value=tr;
+    document.getElementById('testSlider').value=te;
+    updateDiag();
+  }
+  window.setScenario=setScenario;
+
+  function updateDiag(){
+    const train=parseInt(document.getElementById('trainSlider').value)/100;
+    const test=parseInt(document.getElementById('testSlider').value)/100;
+    document.getElementById('trainVal').textContent=train.toFixed(2);
+    document.getElementById('testVal').textContent=test.toFixed(2);
+    const diff=train-test;
+    let label,title,detail,bc,bg;
+    if(diff>0.10){
+      label='Diagnostico — Overfitting Severo';title='Sobreajuste severo';
+      detail=`Diferencia de ${diff.toFixed(2)}. El modelo memorizo el dataset de entrenamiento. Las metricas en produccion seran cercanas a ${test.toFixed(2)}, no a ${train.toFixed(2)}. Accion urgente requerida.`;
+      bc='var(--danger)';bg='#fdf0f0';
+    } else if(diff>0.05){
+      label='Diagnostico — Overfitting Moderado';title='Sobreajuste moderado';
+      detail=`Diferencia de ${diff.toFixed(2)}. El modelo aprende patrones del ruido ademas de la señal real. Reducir complejidad: max_depth, n_estimators, aumentar gamma o regularizacion.`;
+      bc='var(--danger)';bg='#fdf0f0';
+    } else if(test<0.65&&diff<=0.05){
+      label='Diagnostico — Underfitting';title='Subajuste';
+      detail=`AUC test de ${test.toFixed(2)} es bajo. El modelo es demasiado simple para capturar los patrones de pago en NYC Taxi. Aumentar complejidad o agregar features mas informativas.`;
+      bc='var(--warn)';bg='#fdf6e8';
+    } else if(diff<=0.02&&test>=0.65){
+      label='Diagnostico — Buen Ajuste';title='Buen ajuste';
+      detail=`Diferencia de ${diff.toFixed(2)} con AUC test de ${test.toFixed(2)}. El modelo generaliza bien. Los patrones aprendidos en el train se replican en datos nuevos.`;
+      bc='var(--accent)';bg='var(--accent4)';
+    } else {
+      label='Diagnostico — Zona Aceptable';title='Ajuste aceptable';
+      detail=`Diferencia de ${diff.toFixed(2)}. Hay una leve brecha entre train y test dentro de rangos aceptables. Monitorear si la diferencia aumenta con mas iteraciones.`;
+      bc='var(--violet)';bg='var(--violet3)';
+    }
+    const box=document.getElementById('diagResult');
+    box.style.borderColor=bc;box.style.background=bg;
+    document.getElementById('diagLabel').textContent=label;
+    document.getElementById('diagLabel').style.color=bc;
+    document.getElementById('diagTitle').textContent=title;
+    document.getElementById('diagTitle').style.color=bc;
+    document.getElementById('diagDetail').textContent=detail;
+    drawSimCurve(train,test,diff);
+  }
+
+  function drawSimCurve(trainF,testF,diff){
+    const cv=document.getElementById('simCanvas');if(!cv)return;
+    const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+    ctx.clearRect(0,0,W,H);
+    const N=80,pad={t:16,r:16,b:28,l:44},pw=W-pad.l-pad.r,ph=H-pad.t-pad.b;
+    const minY=0.48,maxY=1.0;
+    const tr=[],te=[];
+    for(let i=0;i<=N;i++){
+      const t=i/N;
+      tr.push(0.52+(trainF-0.52)*(1-Math.exp(-t*4)));
+      let ts=0.52+(testF-0.52)*(1-Math.exp(-t*3));
+      if(diff>0.05&&t>0.4) ts=testF+(testF-ts)*0.3;
+      te.push(Math.max(ts,0.50));
+    }
+    ctx.strokeStyle='#eee';ctx.lineWidth=1;
+    [0.5,0.6,0.7,0.8,0.9,1.0].forEach(v=>{
+      const y=pad.t+ph-(v-minY)/(maxY-minY)*ph;
+      ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+pw,y);ctx.stroke();
+      ctx.fillStyle='#bbb';ctx.font='10px Inconsolata';ctx.fillText(v.toFixed(1),2,y+4);
+    });
+    const fc=diff>0.05?'rgba(192,57,43,0.10)':'rgba(45,106,79,0.07)';
+    ctx.beginPath();
+    tr.forEach((v,i)=>{const x=pad.l+i/N*pw,y=pad.t+ph-(v-minY)/(maxY-minY)*ph;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    for(let i=N;i>=0;i--){const x=pad.l+i/N*pw,y=pad.t+ph-(te[i]-minY)/(maxY-minY)*ph;ctx.lineTo(x,y);}
+    ctx.closePath();ctx.fillStyle=fc;ctx.fill();
+    [[tr,'#2d6a4f'],[te,'#1a3a6b']].forEach(([pts,col])=>{
+      ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=2;
+      pts.forEach((v,i)=>{const x=pad.l+i/N*pw,y=pad.t+ph-(v-minY)/(maxY-minY)*ph;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+      ctx.stroke();
+    });
+    ctx.font='10px Inconsolata';
+    ctx.fillStyle='#2d6a4f';ctx.fillRect(pad.l,H-16,12,8);
+    ctx.fillStyle='#555';ctx.fillText('Train',pad.l+16,H-9);
+    ctx.fillStyle='#1a3a6b';ctx.fillRect(pad.l+65,H-16,12,8);
+    ctx.fillStyle='#555';ctx.fillText('Test',pad.l+81,H-9);
+  }
+
+  // ── SLIDE 5 ──────────────────────────────────────────────────────
+  function drawTradeoff(){
+    const cv=document.getElementById('tradeoffCanvas');if(!cv)return;
+    const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+    ctx.clearRect(0,0,W,H);
+    const N=200,pad={t:16,r:20,b:40,l:44},pw=W-pad.l-pad.r,ph=H-pad.t-pad.b;
+    const minY=0.50,maxY=0.90;
+    const tr=[],te=[];
+    for(let i=0;i<=N;i++){
+      const t=i/N;
+      tr.push(Math.min(0.54+0.44*(1-Math.exp(-t*4)),0.98));
+      let ts=0.54+0.20*(1-Math.exp(-t*3));
+      if(t>0.35) ts-=Math.pow(t-0.35,1.5)*0.28;
+      te.push(Math.max(ts,0.50));
+    }
+    const zw=pw/3;
+    [['rgba(224,123,0,0.07)',0],['rgba(45,106,79,0.07)',zw],['rgba(123,79,46,0.07)',zw*2]].forEach(([col,x])=>{
+      ctx.fillStyle=col;ctx.fillRect(pad.l+x,pad.t,zw,ph);
+    });
+    ctx.strokeStyle='#ddd';ctx.lineWidth=1;
+    [0.5,0.6,0.7,0.8,0.9].forEach(v=>{
+      const y=pad.t+ph-(v-minY)/(maxY-minY)*ph;
+      ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+pw,y);ctx.stroke();
+      ctx.fillStyle='#aaa';ctx.font='10px Inconsolata';ctx.fillText(v.toFixed(1),2,y+4);
+    });
+    ctx.beginPath();
+    tr.forEach((v,i)=>{const x=pad.l+i/N*pw,y=pad.t+ph-(v-minY)/(maxY-minY)*ph;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    for(let i=N;i>=0;i--){const x=pad.l+i/N*pw,y=pad.t+ph-(te[i]-minY)/(maxY-minY)*ph;ctx.lineTo(x,y);}
+    ctx.closePath();ctx.fillStyle='rgba(192,57,43,0.09)';ctx.fill();
+    [[tr,'#2d6a4f'],[te,'#1a3a6b']].forEach(([pts,col])=>{
+      ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=2.5;
+      pts.forEach((v,i)=>{const x=pad.l+i/N*pw,y=pad.t+ph-(v-minY)/(maxY-minY)*ph;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+      ctx.stroke();
+    });
+    ctx.font='bold 11px Inconsolata';
+    [['Underfitting','#e07b00',zw*0.5],['Buen Ajuste','#2d6a4f',zw*1.5],['Overfitting','#c0392b',zw*2.5]].forEach(([lbl,col,x])=>{
+      ctx.fillStyle=col;ctx.fillText(lbl,pad.l+x-ctx.measureText(lbl).width/2,H-20);
+    });
+    ctx.fillStyle='#888';ctx.font='10px Inconsolata';
+    ctx.fillText('Complejidad del modelo (max_depth, n_estimators)',pad.l+pw/2-130,H-8);
+    ctx.fillStyle='#2d6a4f';ctx.fillRect(pad.l,pad.t-2,12,8);
+    ctx.fillStyle='#555';ctx.font='10px Inconsolata';ctx.fillText('Train',pad.l+16,pad.t+5);
+    ctx.fillStyle='#1a3a6b';ctx.fillRect(pad.l+62,pad.t-2,12,8);
+    ctx.fillStyle='#555';ctx.fillText('Test',pad.l+78,pad.t+5);
+  }
+
+})();
+</script>
+</body>
+</html>

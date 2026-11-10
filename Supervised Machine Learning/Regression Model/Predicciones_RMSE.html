@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Predicciones y Metricas — Paso a Paso</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --ink: #121212;
+    --mid: #4a4a4a;
+    --soft: #888;
+    --light: #f2f2f2;
+    --border: #e0e0e0;
+    --blue: #1a3a6b;
+    --blue2: #2a5298;
+    --blue-light: #d0dff5;
+    --orange: #b04500;
+    --orange2: #e8763a;
+    --orange-light: #fde8d8;
+    --green: #1a5c35;
+    --green-light: #edf7f1;
+    --red: #a01c1c;
+    --red-light: #fdf0f0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.65; }
+
+  /* NAV */
+  .nav {
+    position: sticky; top: 0; background: #fff;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px; height: 50px; z-index: 100;
+  }
+  .nav-brand { font-size: 0.85rem; font-weight: 700; color: var(--blue); letter-spacing: 0.01em; }
+  .nav-right  { display: flex; align-items: center; gap: 10px; }
+  .nav-pills  { display: flex; gap: 4px; }
+  .nav-pill {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 1.5px solid var(--border); background: transparent;
+    cursor: pointer; font-size: 0.7rem; color: var(--soft); transition: all 0.2s;
+  }
+  .nav-pill.active { background: var(--blue); border-color: var(--blue); color: white; font-weight: 700; }
+  .nav-counter { font-size: 0.74rem; color: var(--soft); font-family: monospace; }
+  .btn {
+    padding: 6px 16px; border-radius: 4px; border: 1px solid var(--border);
+    background: white; cursor: pointer; font-size: 0.82rem; color: var(--ink); transition: all 0.15s;
+  }
+  .btn:hover { background: var(--light); }
+  .btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+  .btn-primary { background: var(--blue); border-color: var(--blue); color: white; }
+  .btn-primary:hover { background: var(--blue2); }
+
+  /* PROGRESS */
+  .progress-wrap { height: 3px; background: var(--border); }
+  .progress-bar  { height: 3px; background: var(--orange); transition: width 0.3s ease; }
+
+  /* SLIDES */
+  .slide { display: none; min-height: calc(100vh - 53px); padding: 44px 64px; max-width: 980px; margin: 0 auto; }
+  .slide.active { display: block; }
+  .slide-label { font-family: monospace; font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--orange); margin-bottom: 10px; }
+  h2 { font-size: 1.55rem; font-weight: 700; margin-bottom: 6px; line-height: 1.2; }
+  h2 em { font-style: italic; color: var(--blue); }
+  h3 { font-size: 1rem; font-weight: 700; }
+  .lead { font-size: 0.94rem; color: var(--mid); margin-bottom: 22px; max-width: 720px; }
+  hr.rule { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+  /* FORMULA BOX */
+  .formula-box {
+    background: var(--blue-light); border: 1px solid #a0bce0;
+    border-left: 4px solid var(--blue); border-radius: 4px;
+    padding: 18px 24px; margin: 14px 0; text-align: center;
+    font-size: 1.1rem; font-family: Georgia, serif; color: var(--blue);
+  }
+  .formula-box.orange {
+    background: var(--orange-light); border-color: #d4a080; border-left-color: var(--orange); color: var(--orange);
+  }
+
+  /* COEF TABLE */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; margin: 14px 0; }
+  .data-table th { background: var(--blue); color: white; padding: 9px 14px; text-align: left; font-weight: 600; font-size: 0.8rem; }
+  .data-table td { padding: 9px 14px; border-bottom: 1px solid var(--border); }
+  .data-table tr:nth-child(even) td { background: #fafafa; }
+  .data-table .mono { font-family: monospace; font-size: 0.9rem; }
+
+  /* OBS GRID */
+  .obs-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 16px 0; }
+  .obs-btn {
+    border: 1.5px solid var(--border); border-radius: 6px; padding: 12px 8px;
+    text-align: center; cursor: pointer; background: white; transition: all 0.2s;
+  }
+  .obs-btn:hover { border-color: var(--blue); background: var(--blue-light); }
+  .obs-btn.selected { border-color: var(--blue); background: var(--blue-light); }
+  .obs-btn .obs-id { font-weight: 700; font-size: 1rem; color: var(--blue); }
+  .obs-btn .obs-vals { font-size: 0.73rem; color: var(--soft); margin-top: 4px; line-height: 1.5; font-family: monospace; }
+
+  /* CALC PANEL */
+  .calc-panel {
+    background: var(--light); border: 1px solid var(--border); border-radius: 6px;
+    padding: 20px 24px; margin-top: 10px; display: none;
+    animation: fadeIn 0.25s ease;
+  }
+  .calc-panel.visible { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .calc-step { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+  .step-num {
+    width: 24px; height: 24px; border-radius: 50%; background: var(--blue); color: white;
+    font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .step-body { flex: 1; font-size: 0.87rem; }
+  .step-body strong { display: block; margin-bottom: 5px; }
+  .code-line {
+    font-family: 'Courier New', monospace; background: white; border: 1px solid var(--border);
+    padding: 7px 12px; border-radius: 4px; font-size: 0.83rem; line-height: 1.7;
+  }
+  .result-ok {
+    background: var(--green-light); border: 1px solid #90c4a8; border-left: 4px solid var(--green);
+    border-radius: 4px; padding: 10px 16px; margin-top: 10px;
+    font-family: monospace; font-size: 0.92rem; font-weight: 700; color: var(--green);
+  }
+
+  /* ERROR TABLE */
+  .err-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; margin: 14px 0; }
+  .err-table th {
+    background: var(--blue); color: white; padding: 9px 12px;
+    text-align: right; font-weight: 600; font-size: 0.78rem;
+  }
+  .err-table th:first-child { text-align: center; }
+  .err-table td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--border); }
+  .err-table td:first-child { text-align: center; font-weight: 700; color: var(--blue); }
+  .err-table tr:nth-child(even) td { background: #fafafa; }
+  .err-table .sum-row td { background: var(--light) !important; font-weight: 700; border-top: 2px solid var(--ink); }
+  .err-table .mae-row td { background: var(--orange-light) !important; font-weight: 700; color: var(--orange); }
+  .pos { color: var(--orange); font-weight: 600; }
+  .neg { color: var(--blue2); font-weight: 600; }
+
+  /* METRIC CARDS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin: 16px 0; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .metric-card {
+    border: 1px solid var(--border); border-top: 3px solid var(--orange);
+    border-radius: 6px; padding: 18px 20px;
+  }
+  .metric-card h3 { font-size: 0.9rem; margin-bottom: 6px; }
+  .metric-val { font-size: 1.7rem; font-weight: 700; color: var(--orange); font-family: monospace; }
+  .metric-desc { font-size: 0.76rem; color: var(--soft); margin-top: 4px; }
+
+  /* COMPUTATION BOX */
+  .compute-box {
+    background: #fafafa; border: 1px solid var(--border); border-radius: 6px;
+    padding: 16px 20px; font-family: 'Courier New', monospace; font-size: 0.81rem;
+    line-height: 2.1; margin: 10px 0;
+  }
+  .compute-box .total { font-weight: 700; border-top: 1px solid var(--border); margin-top: 4px; padding-top: 4px; }
+  .compute-box .answer { color: var(--orange); font-weight: 700; font-size: 1rem; }
+
+  /* CALLOUT */
+  .callout {
+    background: var(--blue-light); border-left: 4px solid var(--blue);
+    border-radius: 0 4px 4px 0; padding: 11px 16px; font-size: 0.86rem; margin: 12px 0;
+  }
+  .callout.warn { background: var(--orange-light); border-left-color: var(--orange); }
+  .callout.good { background: var(--green-light); border-left-color: var(--green); }
+
+  /* RMSE DERIVATION */
+  .derive-box {
+    border: 1px solid var(--border); border-radius: 6px; padding: 24px;
+    text-align: center; margin: 16px 0;
+  }
+  .derive-step { font-size: 1.05rem; margin: 8px 0; font-family: Georgia, serif; }
+  .derive-arrow { color: var(--soft); font-size: 0.85rem; margin: 4px 0; }
+  .derive-result { font-size: 2rem; font-weight: 700; color: var(--orange); font-family: monospace; margin-top: 10px; }
+  .derive-unit { font-size: 0.8rem; color: var(--soft); }
+
+  code { font-family: 'Courier New', monospace; background: var(--light); padding: 1px 5px; border-radius: 3px; font-size: 0.88em; }
+  .hl-pb { color: #b04500; font-weight: 700; }
+  .hl-m  { color: #1a3a6b; font-weight: 700; }
+  .hl-b0 { color: #1a5c35; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-brand">Predicciones y Metricas — Paso a Paso</span>
+  <div class="nav-pills" id="navPills"></div>
+  <div class="nav-right">
+    <span class="nav-counter" id="navCounter">1 / 5</span>
+    <button class="btn" id="btnPrev" onclick="changSlide(-1)" disabled>&#8592; Anterior</button>
+    <button class="btn btn-primary" id="btnNext" onclick="changSlide(1)">Siguiente &#8594;</button>
+  </div>
+</nav>
+<div class="progress-wrap">
+  <div class="progress-bar" id="progress-bar" style="width:20%"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 1 — EL MODELO ESTIMADO
+═══════════════════════════════════════════════════════════ -->
+<section class="slide active" id="slide-1">
+  <div class="slide-label">01 &mdash; El Modelo</div>
+  <h2>El modelo <em>estimado con Train</em></h2>
+  <p class="lead">Una vez entrenado sobre la muestra Train, el modelo queda definido por tres parametros fijos. Estos son los coeficientes que usaremos para predecir en Test.</p>
+  <hr class="rule">
+
+  <p style="font-size:0.88rem; color:var(--mid); margin-bottom:6px">Forma general del modelo de regresion lineal multiple:</p>
+  <div class="formula-box">
+    q&#x302; &nbsp;=&nbsp; &#946;&#x302;<sub>0</sub> &nbsp;+&nbsp; &#946;&#x302;<sub>1</sub> &middot; pb &nbsp;+&nbsp; &#946;&#x302;<sub>2</sub> &middot; m
+  </div>
+
+  <p style="font-size:0.88rem; color:var(--mid); margin: 14px 0 6px">Sustituyendo los valores estimados por <code>statsmodels</code> sobre Train:</p>
+  <div class="formula-box orange">
+    q&#x302; &nbsp;=&nbsp; <strong>57.9043</strong> &nbsp;+&nbsp; (<strong>&minus;27.6258</strong>) &middot; pb &nbsp;+&nbsp; (<strong>0.002555</strong>) &middot; m
+  </div>
+
+  <table class="data-table" style="margin-top:20px">
+    <thead>
+      <tr>
+        <th>Parametro</th>
+        <th>Variable</th>
+        <th>Valor exacto (Python)</th>
+        <th>Signo e interpretacion</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>&#946;&#x302;<sub>0</sub> &mdash; Constante</td>
+        <td>&mdash;</td>
+        <td class="mono">57.9043225341862</td>
+        <td>Nivel base de q cuando pb = 0 y m = 0</td>
+      </tr>
+      <tr>
+        <td>&#946;&#x302;<sub>1</sub></td>
+        <td>pb</td>
+        <td class="mono">&minus;27.625790417248023</td>
+        <td style="color:var(--red)">Negativo: a mayor pb, menor q (relacion inversa)</td>
+      </tr>
+      <tr>
+        <td>&#946;&#x302;<sub>2</sub></td>
+        <td>m</td>
+        <td class="mono">0.0025553249022494343</td>
+        <td style="color:var(--green)">Positivo: a mayor m, mayor q (relacion directa)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout" style="margin-top:16px">
+    <strong>Importante:</strong> estos tres parametros no se recalculan. Fueron estimados una unica vez usando los datos de Train. La muestra Test nunca participo en su estimacion &mdash; por eso la evaluacion sobre Test es honesta.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 2 — PREDICCION MANUAL
+═══════════════════════════════════════════════════════════ -->
+<section class="slide" id="slide-2">
+  <div class="slide-label">02 &mdash; Prediccion Manual</div>
+  <h2>Como se calcula <em>cada pronostico</em></h2>
+  <p class="lead">Selecciona una observacion de X_test. Veras como se "enchufan" sus valores de pb y m en el modelo estimado para obtener q&#x302;.</p>
+  <hr class="rule">
+
+  <p style="font-size:0.85rem; color:var(--mid); margin-bottom:10px">Observaciones de X_test (5 primeras segun <code>final.head()</code>):</p>
+
+  <div class="obs-grid" id="obs-grid">
+    <div class="obs-btn" onclick="showCalc(0)">
+      <div class="obs-id">Obs 27</div>
+      <div class="obs-vals">pb = 3.99<br>m = 38,823</div>
+    </div>
+    <div class="obs-btn" onclick="showCalc(1)">
+      <div class="obs-id">Obs 15</div>
+      <div class="obs-vals">pb = 3.11<br>m = 32,408</div>
+    </div>
+    <div class="obs-btn" onclick="showCalc(2)">
+      <div class="obs-id">Obs 23</div>
+      <div class="obs-vals">pb = 3.72<br>m = 36,682</div>
+    </div>
+    <div class="obs-btn" onclick="showCalc(3)">
+      <div class="obs-id">Obs 17</div>
+      <div class="obs-vals">pb = 3.34<br>m = 33,904</div>
+    </div>
+    <div class="obs-btn" onclick="showCalc(4)">
+      <div class="obs-id">Obs 8</div>
+      <div class="obs-vals">pb = 2.54<br>m = 28,713</div>
+    </div>
+  </div>
+
+  <div class="calc-panel" id="calc-panel">
+    <div id="calc-content"></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 3 — TABLA DE ERRORES
+═══════════════════════════════════════════════════════════ -->
+<section class="slide" id="slide-3">
+  <div class="slide-label">03 &mdash; Los Errores</div>
+  <h2>Pronostico <em>vs. valor real</em></h2>
+  <p class="lead">Para cada observacion de Test calculamos el error: la diferencia entre lo que predijo el modelo y el valor que realmente ocurrio. Estos errores son la materia prima de MAE, MSE y RMSE.</p>
+  <hr class="rule">
+
+  <p style="font-size:0.86rem; margin-bottom:10px">
+    <strong>e<sub>i</sub> = q&#x302;<sub>i</sub> &minus; q<sub>i</sub></strong> &nbsp;&nbsp; (pronostico menos valor real)
+  </p>
+
+  <table class="err-table">
+    <thead>
+      <tr>
+        <th style="text-align:center">Obs</th>
+        <th style="text-align:left">pb</th>
+        <th style="text-align:left">m</th>
+        <th>q real</th>
+        <th>q&#x302; pronostico</th>
+        <th>Error e<sub>i</sub></th>
+        <th>|e<sub>i</sub>|</th>
+        <th>e<sub>i</sub>&sup2;</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>27</td><td style="text-align:left">3.99</td><td style="text-align:left">38,823</td>
+        <td>46.80</td><td>46.8828</td>
+        <td class="pos">+0.0828</td><td>0.0828</td><td>0.0069</td>
+      </tr>
+      <tr>
+        <td>15</td><td style="text-align:left">3.11</td><td style="text-align:left">32,408</td>
+        <td>51.60</td><td>54.8011</td>
+        <td class="pos">+3.2011</td><td>3.2011</td><td>10.2470</td>
+      </tr>
+      <tr>
+        <td>23</td><td style="text-align:left">3.72</td><td style="text-align:left">36,682</td>
+        <td>51.60</td><td>48.8708</td>
+        <td class="neg">&minus;2.7292</td><td>2.7292</td><td>7.4485</td>
+      </tr>
+      <tr>
+        <td>17</td><td style="text-align:left">3.34</td><td style="text-align:left">33,904</td>
+        <td>51.70</td><td>52.2699</td>
+        <td class="pos">+0.5699</td><td>0.5699</td><td>0.3248</td>
+      </tr>
+      <tr>
+        <td>8</td><td style="text-align:left">2.54</td><td style="text-align:left">28,713</td>
+        <td>57.80</td><td>61.1059</td>
+        <td class="pos">+3.3059</td><td>3.3059</td><td>10.9287</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td style="text-align:left">2.72</td><td style="text-align:left">30,000</td>
+        <td>55.34</td><td>59.4219</td>
+        <td class="pos">+4.0781</td><td>4.0781</td><td>16.6308</td>
+      </tr>
+      <tr class="sum-row">
+        <td colspan="6" style="text-align:right; color:var(--mid)">Suma (n = 6) &rarr;</td>
+        <td>13.9670</td><td>45.5867</td>
+      </tr>
+      <tr class="mae-row">
+        <td colspan="6" style="text-align:right">&divide; n = 6 &rarr;</td>
+        <td><strong>2.3278</strong><br><small>= MAE</small></td>
+        <td><strong>7.5978</strong><br><small>= MSE</small></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <strong>Errores en naranja</strong> = sobrestimacion (el modelo predijo mas de lo real). <strong>Errores en azul</strong> = subestimacion. Al calcular MAE y MSE tomamos valor absoluto o cuadrado para eliminar el signo y poder sumar todos.
+  </div>
+  <div class="callout" style="margin-top:8px">
+    Con <code>X_test.head(6)</code> ahora conocemos todos los datos de entrada de obs 9: pb = 2.72, m = 30,000. El pronostico q&#x302; = 59.4219 se puede verificar manualmente (57.9043 + (&minus;27.6258)&times;2.72 + 0.002555&times;30000 = 59.4219). El valor real q = 55.34 aun se infiere a partir del MAE, ya que <code>y_test</code> no fue mostrado para esa observacion.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 4 — MAE Y MSE
+═══════════════════════════════════════════════════════════ -->
+<section class="slide" id="slide-4">
+  <div class="slide-label">04 &mdash; MAE y MSE</div>
+  <h2>Calculando <em>MAE y MSE</em> a mano</h2>
+  <p class="lead">Ambas metricas resumen todos los errores en un unico numero. La diferencia clave esta en como penalizan los errores grandes.</p>
+  <hr class="rule">
+
+  <div class="grid-2">
+    <!-- MAE -->
+    <div>
+      <h3 style="color:var(--blue); margin-bottom:10px">MAE &mdash; Error Absoluto Medio</h3>
+      <div class="formula-box" style="font-size:0.95rem; padding:12px">
+        MAE &nbsp;=&nbsp; <sup>1</sup>&frasl;<sub>n</sub> &middot; &sum; |e<sub>i</sub>| &nbsp;=&nbsp; <sup>&sum;|e<sub>i</sub>|</sup>&frasl;<sub>n</sub>
+      </div>
+      <p style="font-size:0.83rem; color:var(--mid); margin-bottom:8px">Suma de todos los errores absolutos, dividida entre n = 6:</p>
+      <div class="compute-box">
+        |0.0828| + |3.2011| + |2.7292| + |0.5699| + |3.3059| + |4.0781|<br>
+        = 0.0828 + 3.2011 + 2.7292 + 0.5699 + 3.3059 + 4.0781<br>
+        <span class="total">= 13.9670</span>
+        <br>
+        MAE = 13.9670 &divide; 6 = <span class="answer">2.3278</span>
+      </div>
+      <div style="margin-top:8px; font-size:0.84rem; color:var(--mid)">
+        <strong style="color:var(--ink)">Interpretacion:</strong> en promedio, el modelo se equivoca en <strong>2.33 unidades</strong> de q. Esta en las mismas unidades que q.
+      </div>
+    </div>
+
+    <!-- MSE -->
+    <div>
+      <h3 style="color:var(--blue); margin-bottom:10px">MSE &mdash; Error Cuadratico Medio</h3>
+      <div class="formula-box" style="font-size:0.95rem; padding:12px">
+        MSE &nbsp;=&nbsp; <sup>1</sup>&frasl;<sub>n</sub> &middot; &sum; e<sub>i</sub>&sup2; &nbsp;=&nbsp; <sup>&sum;e<sub>i</sub>&sup2;</sup>&frasl;<sub>n</sub>
+      </div>
+      <p style="font-size:0.83rem; color:var(--mid); margin-bottom:8px">Suma de cuadrados de errores, dividida entre n = 6:</p>
+      <div class="compute-box">
+        0.0069 + 10.2470 + 7.4485 + 0.3248 + 10.9287 + 16.6308<br>
+        &nbsp;<br>
+        <span class="total">= 45.5867</span>
+        <br>
+        MSE = 45.5867 &divide; 6 = <span class="answer">7.5978</span>
+      </div>
+      <div style="margin-top:8px; font-size:0.84rem; color:var(--mid)">
+        <strong style="color:var(--ink)">Interpretacion:</strong> el MSE esta en <strong>unidades al cuadrado</strong> de q, lo que lo hace dificil de interpretar directamente. Por eso se calcula el RMSE.
+      </div>
+    </div>
+  </div>
+
+  <div class="callout warn" style="margin-top:4px">
+    <strong>Por que el MSE es mayor que el MAE al cuadrado?</strong> Porque los errores grandes (como el de obs 15: 3.20, o el de obs 9: 4.08) quedan elevados al cuadrado y dominan la suma. El MSE castiga desproporcionadamente los errores grandes.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SLIDE 5 — RMSE
+═══════════════════════════════════════════════════════════ -->
+<section class="slide" id="slide-5">
+  <div class="slide-label">05 &mdash; RMSE</div>
+  <h2>De MSE a <em>RMSE</em></h2>
+  <p class="lead">El problema del MSE es que esta en unidades al cuadrado. La solucion es tomar su raiz cuadrada: obtenemos el RMSE, que esta en las mismas unidades que q y es la metrica mas utilizada en regresion.</p>
+  <hr class="rule">
+
+  <div class="derive-box">
+    <div class="derive-step">RMSE &nbsp;=&nbsp; &radic;<span style="text-decoration:overline">&nbsp;MSE&nbsp;</span></div>
+    <div class="derive-arrow">&#8595;</div>
+    <div class="derive-step">RMSE &nbsp;=&nbsp; &radic;<span style="text-decoration:overline">&nbsp;7.5978&nbsp;</span></div>
+    <div class="derive-arrow">&#8595;</div>
+    <div class="derive-result">2.7564</div>
+    <div class="derive-unit">unidades de q</div>
+  </div>
+
+  <div class="callout good" style="margin-bottom:18px">
+    <strong>Interpretacion practica:</strong> el modelo predice q con un error tipico de <strong>2.76 unidades</strong>. Dado que los valores reales de q en el Test oscilan entre 46.8 y 57.8, este error representa aproximadamente el <strong>5% del rango</strong> de la variable, lo que indica un ajuste razonable.
+  </div>
+
+  <hr class="rule">
+  <h3 style="margin-bottom:14px; color:var(--blue)">Las tres metricas: resumen comparativo</h3>
+
+  <div class="grid-3">
+    <div class="metric-card">
+      <h3>MAE</h3>
+      <div class="metric-val">2.3278</div>
+      <div class="metric-desc">Error promedio absoluto. Facil de comunicar. No penaliza especialmente los errores grandes.</div>
+    </div>
+    <div class="metric-card">
+      <h3>MSE</h3>
+      <div class="metric-val">7.5978</div>
+      <div class="metric-desc">En unidades cuadradas de q. Penaliza errores grandes. Util para optimizacion matematica.</div>
+    </div>
+    <div class="metric-card" style="border-top-color:var(--blue)">
+      <h3>RMSE</h3>
+      <div class="metric-val" style="color:var(--blue)">2.7564</div>
+      <div class="metric-desc">Raiz del MSE. Mismas unidades que q. Combina interpretabilidad y sensibilidad a errores grandes.</div>
+    </div>
+  </div>
+
+  <table class="data-table" style="margin-top:8px">
+    <thead>
+      <tr><th>Metrica</th><th>Formula</th><th>Unidades</th><th>Sensibilidad a errores grandes</th><th>Valor (Test)</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>MAE</strong></td>
+        <td class="mono">(1/n) &middot; &sum;|e&#x1D62;|</td>
+        <td>Mismas que q</td>
+        <td>Lineal (proporcional)</td>
+        <td class="mono">2.3278</td>
+      </tr>
+      <tr>
+        <td><strong>MSE</strong></td>
+        <td class="mono">(1/n) &middot; &sum;e&#x1D62;&sup2;</td>
+        <td>q al cuadrado</td>
+        <td>Cuadratica (alta)</td>
+        <td class="mono">7.5978</td>
+      </tr>
+      <tr>
+        <td><strong>RMSE</strong></td>
+        <td class="mono">&radic;MSE</td>
+        <td>Mismas que q</td>
+        <td>Cuadratica (alta)</td>
+        <td class="mono">2.7564</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCRIPTS
+═══════════════════════════════════════════════════════════ -->
+<script>
+// ── DATOS ────────────────────────────────────────────────────
+var B0 = 57.9043225341862;
+var B1 = -27.625790417248023;
+var B2 = 0.0025553249022494343;
+
+var OBS = [
+  { id: 27, pb: 3.99,  m: 38823 },
+  { id: 15, pb: 3.11,  m: 32408 },
+  { id: 23, pb: 3.72,  m: 36682 },
+  { id: 17, pb: 3.34,  m: 33904 },
+  { id:  8, pb: 2.54,  m: 28713 }
+];
+
+var YHAT = [46.882797, 54.801087, 48.870809, 52.269920, 61.105860];
+
+// ── NAVEGACION ───────────────────────────────────────────────
+var current = 1, total = 5;
+
+function buildNav() {
+  var pills = document.getElementById('navPills');
+  pills.innerHTML = '';
+  for (var i = 1; i <= total; i++) {
+    var b = document.createElement('button');
+    b.className = 'nav-pill' + (i === current ? ' active' : '');
+    b.textContent = i;
+    b.onclick = (function(n){ return function(){ goTo(n); }; })(i);
+    pills.appendChild(b);
+  }
+}
+
+function goTo(n) {
+  document.getElementById('slide-' + current).classList.remove('active');
+  current = n;
+  document.getElementById('slide-' + current).classList.add('active');
+  document.getElementById('navCounter').textContent = current + ' / ' + total;
+  document.getElementById('progress-bar').style.width = ((current / total) * 100) + '%';
+  document.getElementById('btnPrev').disabled = current === 1;
+  document.getElementById('btnNext').disabled = current === total;
+  buildNav();
+}
+
+function changSlide(dir) { goTo(Math.min(Math.max(current + dir, 1), total)); }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') changSlide(1);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   changSlide(-1);
+});
+
+// ── CALCULADORA DE PREDICCION ────────────────────────────────
+function showCalc(idx) {
+  var o   = OBS[idx];
+  var t1  = B0;
+  var t2  = B1 * o.pb;
+  var t3  = B2 * o.m;
+  var sum = t1 + t2 + t3;
+  var yhat = YHAT[idx];
+
+  // resaltar boton seleccionado
+  document.querySelectorAll('.obs-btn').forEach(function(b){ b.classList.remove('selected'); });
+  document.querySelectorAll('.obs-btn')[idx].classList.add('selected');
+
+  var mStr = o.m.toLocaleString('es-CO');
+
+  var h = '';
+  h += '<h3 style="color:var(--blue); margin-bottom:14px">Obs ' + o.id + ': pb = <span class="hl-pb">' + o.pb + '</span>, m = <span class="hl-m">' + mStr + '</span></h3>';
+
+  // Paso 1
+  h += '<div class="calc-step"><div class="step-num">1</div><div class="step-body">';
+  h += '<strong>Modelo con coeficientes estimados:</strong>';
+  h += '<div class="code-line">q&#x302; = <span class="hl-b0">57.9043</span> + (&minus;27.6258) &middot; pb + (0.002555) &middot; m</div>';
+  h += '</div></div>';
+
+  // Paso 2
+  h += '<div class="calc-step"><div class="step-num">2</div><div class="step-body">';
+  h += '<strong>Sustituir los valores de la observacion:</strong>';
+  h += '<div class="code-line">q&#x302; = <span class="hl-b0">57.9043</span> + (&minus;27.6258) &middot; <span class="hl-pb">' + o.pb + '</span> + (0.002555) &middot; <span class="hl-m">' + mStr + '</span></div>';
+  h += '</div></div>';
+
+  // Paso 3
+  h += '<div class="calc-step"><div class="step-num">3</div><div class="step-body">';
+  h += '<strong>Calcular cada termino por separado:</strong>';
+  h += '<div class="code-line">';
+  h += 'Termino 1 (constante): <span class="hl-b0">' + t1.toFixed(4) + '</span><br>';
+  h += 'Termino 2 (pb):&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (&minus;27.6258) &times; <span class="hl-pb">' + o.pb + '</span> = ' + t2.toFixed(4) + '<br>';
+  h += 'Termino 3 (m):&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0.002555 &times; <span class="hl-m">' + mStr + '</span> = +' + t3.toFixed(4);
+  h += '</div>';
+  h += '</div></div>';
+
+  // Paso 4
+  h += '<div class="calc-step"><div class="step-num">4</div><div class="step-body">';
+  h += '<strong>Sumar los tres terminos:</strong>';
+  var t2str = t2 < 0 ? '(' + t2.toFixed(4) + ')' : t2.toFixed(4);
+  h += '<div class="code-line">' + t1.toFixed(4) + ' + ' + t2str + ' + ' + t3.toFixed(4) + ' = <strong>' + sum.toFixed(4) + '</strong></div>';
+  h += '</div></div>';
+
+  // Resultado
+  h += '<div class="result-ok">q&#x302;<sub>' + o.id + '</sub> = ' + yhat.toFixed(6) + '</div>';
+
+  document.getElementById('calc-content').innerHTML = h;
+  document.getElementById('calc-panel').classList.add('visible');
+}
+
+buildNav();
+</script>
+</body>
+</html>

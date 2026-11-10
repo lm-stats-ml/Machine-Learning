@@ -1,0 +1,2561 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analisis de Componentes Principales (PCA)</title>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+<style>
+  :root {
+    --verde: #2d6a4f;
+    --verde-claro: #52b788;
+    --verde-fondo: #d8f3dc;
+    --violeta: #5a189a;
+    --violeta-claro: #9d4edd;
+    --violeta-fondo: #e9d8fd;
+    --cafe: #7f4f24;
+    --cafe-claro: #b08968;
+    --cafe-fondo: #f3e9d2;
+    --gris-oscuro: #1a1a2e;
+    --gris-medio: #4a4a6a;
+    --gris-claro: #f5f5f7;
+    --borde: #d0d0d8;
+    --blanco: #ffffff;
+    --font-titulo: 'Zilla Slab', serif;
+    --font-cuerpo: 'Spectral', serif;
+    --font-mono: 'Courier New', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-cuerpo);
+    background: var(--blanco);
+    color: var(--gris-oscuro);
+    line-height: 1.75;
+    font-size: 17px;
+  }
+
+  /* ---- NAVEGACION STICKY ---- */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--blanco);
+    border-bottom: 2px solid var(--verde);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  }
+
+  nav .nav-brand {
+    font-family: var(--font-titulo);
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--verde);
+    padding: 0.9rem 1.2rem 0.9rem 0;
+    border-right: 1px solid var(--borde);
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  nav a {
+    font-family: var(--font-titulo);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--gris-medio);
+    text-decoration: none;
+    padding: 0.9rem 0.85rem;
+    border-bottom: 3px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+  }
+  nav a:hover { color: var(--verde); border-bottom-color: var(--verde-claro); }
+  nav a.active { color: var(--verde); border-bottom-color: var(--verde); font-weight: 600; }
+
+  /* ---- LAYOUT ---- */
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 2rem 6rem;
+  }
+
+  section { margin-bottom: 5rem; }
+
+  /* ---- TIPOGRAFIA ---- */
+  h1 {
+    font-family: var(--font-titulo);
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--gris-oscuro);
+    line-height: 1.2;
+    margin-bottom: 0.4rem;
+  }
+
+  h2 {
+    font-family: var(--font-titulo);
+    font-size: 1.7rem;
+    font-weight: 600;
+    color: var(--verde);
+    margin-bottom: 1.2rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--verde-fondo);
+  }
+
+  h3 {
+    font-family: var(--font-titulo);
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--violeta);
+    margin: 1.8rem 0 0.7rem;
+  }
+
+  p { margin-bottom: 1rem; color: var(--gris-oscuro); }
+
+  .subtitulo {
+    font-family: var(--font-titulo);
+    font-style: italic;
+    font-size: 1rem;
+    color: var(--cafe-claro);
+    margin-bottom: 2.5rem;
+    letter-spacing: 0.01em;
+  }
+
+  /* ---- HERO ---- */
+  .hero {
+    background: linear-gradient(135deg, #f0fff4 0%, #f8f0ff 100%);
+    border-left: 5px solid var(--verde);
+    padding: 2.5rem 2.5rem 2rem;
+    margin-bottom: 4rem;
+    border-radius: 0 8px 8px 0;
+  }
+
+  /* ---- CAJAS DESTACADAS ---- */
+  .caja-concepto {
+    background: var(--gris-claro);
+    border-left: 4px solid var(--violeta);
+    padding: 1.3rem 1.5rem;
+    margin: 1.5rem 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .caja-concepto strong { color: var(--violeta); }
+
+  .caja-verde {
+    background: var(--verde-fondo);
+    border-left: 4px solid var(--verde);
+    padding: 1.2rem 1.5rem;
+    margin: 1.5rem 0;
+    border-radius: 0 6px 6px 0;
+  }
+
+  .caja-cafe {
+    background: var(--cafe-fondo);
+    border-left: 4px solid var(--cafe);
+    padding: 1.2rem 1.5rem;
+    margin: 1.5rem 0;
+    border-radius: 0 6px 6px 0;
+  }
+
+  /* ---- FORMULA ---- */
+  .formula-bloque {
+    background: var(--gris-claro);
+    border: 1px solid var(--borde);
+    padding: 1.4rem 2rem;
+    margin: 1.4rem 0;
+    border-radius: 6px;
+    overflow-x: auto;
+    text-align: center;
+  }
+  .formula-bloque .katex-display { margin: 0; }
+  .formula-bloque .katex { font-size: 1.15rem; }
+
+  /* ---- CODIGO (fondo blanco, estilo Jupyter) ---- */
+  .bloque-codigo {
+    background: #ffffff;
+    border: 1px solid #d0d0d8;
+    border-left: 4px solid var(--verde-claro);
+    border-radius: 0 6px 6px 0;
+    padding: 1.2rem 1.6rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    line-height: 1.7;
+  }
+  .bloque-codigo .kw  { color: #0000ff; font-weight: 600; }
+  .bloque-codigo .fn  { color: #795e26; }
+  .bloque-codigo .st  { color: #a31515; }
+  .bloque-codigo .cm  { color: #6a9955; font-style: italic; }
+  .bloque-codigo .num { color: #098658; }
+  .bloque-codigo .var { color: #001080; }
+  .bloque-codigo .output {
+    color: #555;
+    background: #f8f8f8;
+    border-top: 1px solid var(--borde);
+    margin-top: 0.8rem;
+    padding-top: 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  /* ---- TABLA ---- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.93rem;
+    font-family: var(--font-mono);
+  }
+  thead th {
+    background: var(--verde);
+    color: white;
+    padding: 0.6rem 1rem;
+    text-align: left;
+    font-family: var(--font-titulo);
+    font-size: 0.9rem;
+  }
+  tbody tr:nth-child(even) { background: var(--gris-claro); }
+  tbody td { padding: 0.5rem 1rem; border-bottom: 1px solid var(--borde); }
+  tbody tr:hover { background: var(--verde-fondo); }
+
+  /* ---- PASOS ---- */
+  .pasos { counter-reset: paso; list-style: none; margin: 1.5rem 0; }
+  .pasos li {
+    counter-increment: paso;
+    display: flex;
+    gap: 1.2rem;
+    margin-bottom: 1.2rem;
+    align-items: flex-start;
+  }
+  .pasos li::before {
+    content: counter(paso);
+    background: var(--verde);
+    color: white;
+    font-family: var(--font-titulo);
+    font-weight: 700;
+    font-size: 0.9rem;
+    min-width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+  }
+
+  /* ---- GRID TARJETAS ---- */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+    margin: 1.5rem 0;
+  }
+  @media (max-width: 650px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .tarjeta {
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    padding: 1.2rem 1.3rem;
+    background: var(--blanco);
+    transition: box-shadow 0.2s;
+  }
+  .tarjeta:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.09); }
+  .tarjeta .tarjeta-titulo {
+    font-family: var(--font-titulo);
+    font-weight: 600;
+    font-size: 0.97rem;
+    color: var(--violeta);
+    margin-bottom: 0.5rem;
+  }
+  .tarjeta p { font-size: 0.94rem; margin: 0; }
+
+  /* ---- CANVAS INTERACTIVOS ---- */
+  .canvas-contenedor {
+    background: var(--gris-claro);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+  }
+  .canvas-contenedor h4 {
+    font-family: var(--font-titulo);
+    font-weight: 600;
+    color: var(--gris-oscuro);
+    margin-bottom: 1rem;
+    font-size: 1rem;
+  }
+  canvas { display: block; width: 100%; border-radius: 4px; background: white; }
+
+  .controles {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    align-items: center;
+  }
+  .controles label {
+    font-family: var(--font-titulo);
+    font-size: 0.88rem;
+    color: var(--gris-medio);
+  }
+  .controles input[type=range] {
+    accent-color: var(--verde);
+    width: 130px;
+  }
+  .controles button {
+    font-family: var(--font-titulo);
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: var(--verde);
+    color: white;
+    border: none;
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .controles button:hover { background: var(--violeta); }
+  .controles .info-val {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--cafe);
+  }
+
+  /* ---- LOADINGS INTERACTIVOS ---- */
+  .barra-loading {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-bottom: 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+  }
+  .barra-loading .nombre { width: 80px; color: var(--gris-medio); flex-shrink: 0; }
+  .barra-track {
+    flex: 1;
+    height: 22px;
+    background: #eee;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .barra-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+    display: flex;
+    align-items: center;
+    padding-left: 6px;
+    font-size: 0.78rem;
+    color: white;
+    font-weight: 600;
+  }
+
+  /* ---- MATRIZ DE CORRELACION ---- */
+  .matriz-corr {
+    display: inline-block;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-family: var(--font-mono);
+    font-size: 0.92rem;
+  }
+  .matriz-corr th {
+    background: var(--gris-claro);
+    color: var(--gris-medio);
+    font-family: var(--font-titulo);
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+    text-align: center;
+    border: 1px solid var(--borde);
+  }
+  .matriz-corr th.row-header {
+    background: var(--gris-claro);
+    text-align: right;
+    padding-right: 0.8rem;
+  }
+  .matriz-corr td {
+    width: 72px;
+    height: 52px;
+    text-align: center;
+    vertical-align: middle;
+    border: 1px solid var(--borde);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .matriz-corr td:hover {
+    transform: scale(1.08);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    z-index: 2;
+  }
+  .matriz-corr td.diagonal {
+    background: #2d6a4f;
+    color: white;
+  }
+  .matriz-corr td.fuera-diagonal {
+    background: #f5f5f7;
+    color: #888;
+  }
+  .matriz-corr td.fuera-diagonal.resaltado {
+    background: #e9d8fd;
+    color: var(--violeta);
+  }
+  .tooltip-celda {
+    position: fixed;
+    background: var(--gris-oscuro);
+    color: white;
+    font-family: var(--font-titulo);
+    font-size: 0.82rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 6px;
+    pointer-events: none;
+    z-index: 999;
+    max-width: 220px;
+    line-height: 1.4;
+    display: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  }
+
+  /* ---- SEPARADOR ---- */
+  hr.sep {
+    border: none;
+    border-top: 2px solid var(--verde-fondo);
+    margin: 3rem 0;
+  }
+
+  /* ---- NOTA AL PIE ---- */
+  .nota {
+    font-size: 0.88rem;
+    color: var(--gris-medio);
+    font-style: italic;
+    margin-top: 0.5rem;
+  }
+
+  /* ---- TAG ---- */
+  .tag {
+    display: inline-block;
+    font-family: var(--font-titulo);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.15rem 0.6rem;
+    border-radius: 20px;
+    margin-right: 0.4rem;
+    margin-bottom: 0.3rem;
+  }
+  .tag-verde { background: var(--verde-fondo); color: var(--verde); }
+  .tag-violeta { background: var(--violeta-fondo); color: var(--violeta); }
+  .tag-cafe { background: var(--cafe-fondo); color: var(--cafe); }
+
+  /* ---- ANIMACION BARRAS VARIANZA ---- */
+  @keyframes crecer { from { transform: scaleX(0); transform-origin: left; } to { transform: scaleX(1); transform-origin: left; } }
+</style>
+</head>
+<body>
+
+<!-- NAVEGACION -->
+<nav id="nav-principal">
+  <div class="nav-brand">PCA</div>
+  <a href="#intro" class="active">Introduccion</a>
+  <a href="#matematica">Matematica</a>
+  <a href="#geometria">Geometria</a>
+  <a href="#algoritmo">Algoritmo</a>
+  <a href="#varianza">Varianza</a>
+  <a href="#demo-pca">Demo</a>
+  <a href="#loadings">Loadings</a>
+  <a href="#proyecciones">Proyecciones</a>
+  <a href="#visualizacion">Visualizacion</a>
+  <a href="#criterios">Criterios</a>
+  <a href="#pca-regresion">PCA + Regresion</a>
+  <a href="#codigo">Codigo</a>
+</nav>
+
+<div class="container">
+
+  <!-- HERO -->
+  <div class="hero" id="intro">
+    <div class="subtitulo">Machine Learning: Unsupervised Learning — Prof. Andres Eduardo Rangel Jimenez</div>
+    <h1>Analisis de Componentes Principales</h1>
+    <p style="font-size:1.05rem; margin-top:1rem; max-width:720px;">
+      El PCA es una herramienta de reduccion de dimensionalidad que transforma un conjunto de variables correlacionadas en un conjunto menor de variables ortogonales — los <strong>componentes principales</strong> — que capturan la mayor parte de la informacion original.
+    </p>
+    <div style="margin-top:1.4rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+      <span class="tag tag-verde">Reduccion de dimension</span>
+      <span class="tag tag-violeta">Algebra lineal</span>
+      <span class="tag tag-cafe">sklearn · numpy</span>
+      <span class="tag tag-verde">No supervisado</span>
+    </div>
+  </div>
+
+  <!-- ===== SECCION 1: POR QUE PCA ===== -->
+  <section id="por-que">
+    <h2>Por que usar PCA</h2>
+
+    <p>Cuando un conjunto de datos contiene muchas variables, no todas contribuyen de forma independiente. Algunas estan correlacionadas, son redundantes o aportan solo ruido. Esto genera dos problemas principales:</p>
+
+    <div class="grid-2">
+      <div class="tarjeta">
+        <div class="tarjeta-titulo">Maldicion de la dimensionalidad</div>
+        <p>El volumen del espacio crece exponencialmente con el numero de dimensiones. Los datos se vuelven escasos y los algoritmos basados en distancias pierden efectividad.</p>
+      </div>
+      <div class="tarjeta">
+        <div class="tarjeta-titulo">Multicolinealidad</div>
+        <p>Variables altamente correlacionadas aportan informacion redundante e inestabilizan los coeficientes de los modelos. PCA genera componentes ortogonales, eliminando la correlacion.</p>
+      </div>
+    </div>
+
+    <p>El PCA resuelve estos problemas encontrando un nuevo sistema de ejes — los componentes principales — orientados en las direcciones de maxima varianza de los datos.</p>
+
+    <div class="caja-verde">
+      <strong>Idea central:</strong> si tienes n individuos con p variables, PCA encuentra un numero menor de factores subyacentes (k &lt; p) que explican aproximadamente la misma informacion que las p variables originales. Cada individuo que antes requeria p valores ahora se describe con solo k valores.
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ===== SECCION 2: MATEMATICA ===== -->
+  <section id="matematica">
+    <h2>La matematica del PCA</h2>
+
+    <h3>Matriz de covarianza</h3>
+    <p>El PCA opera sobre la <strong>matriz de covarianza</strong>, que cuantifica como varian conjuntamente cada par de variables. Un valor positivo indica que las variables tienden a moverse juntas; negativo, que se mueven en sentidos opuestos.</p>
+
+    <div class="formula-bloque">$$\text{Cov}(X,Y) = \frac{\displaystyle\sum_{i=1}^{n}(X_i - \mu_X)(Y_i - \mu_Y)}{n-1}$$</div>
+
+    <h3>Eigenvectores y eigenvalues</h3>
+
+    <p>Dado un vector especial <em>v</em> y una matriz cuadrada <em>A</em>, si al multiplicar <em>A</em> por <em>v</em> el resultado es simplemente <em>v</em> escalado por un numero lambda, entonces <em>v</em> es un <strong>eigenvector</strong> de <em>A</em> y lambda es su <strong>eigenvalue</strong>:</p>
+
+    <div class="formula-bloque">$$A \cdot \mathbf{v} = \lambda \cdot \mathbf{v}$$</div>
+
+    <div class="grid-2">
+      <div class="tarjeta">
+        <div class="tarjeta-titulo">Eigenvectores — Direccion</div>
+        <p>Apuntan en las direcciones donde los datos exhiben mayor dispersion. En PCA, cada eigenvector de la matriz de covarianza define un componente principal. Son siempre perpendiculares (ortogonales) entre si.</p>
+      </div>
+      <div class="tarjeta">
+        <div class="tarjeta-titulo">Eigenvalues — Magnitud</div>
+        <p>Cuantifican cuanta varianza captura cada componente. Un eigenvalue mas alto indica mas informacion en esa direccion. Los componentes se ordenan de mayor a menor eigenvalue.</p>
+      </div>
+    </div>
+
+    <div class="caja-cafe">
+      <strong>Propiedades clave de los eigenvectores:</strong><br>
+      Solo existen para matrices cuadradas. Para una matriz n x n hay como maximo n eigenvectores. Al escalar un eigenvector (multiplicarlo por una constante), sigue siendo eigenvector de la misma matriz. Todos son mutuamente ortogonales.
+    </div>
+
+    <h3>Los loadings</h3>
+
+    <p>Cada componente principal Z<sub>i</sub> es una combinacion lineal de las variables originales. Los coeficientes de esa combinacion se llaman <strong>loadings</strong> (pesos):</p>
+
+    <div class="formula-bloque">$$Z_1 = \phi_{11}X_1 + \phi_{21}X_2 + \ldots + \phi_{p1}X_p$$</div>
+
+    <p>Con la restriccion de normalizacion:</p>
+
+    <div class="formula-bloque">$$\sum_{j=1}^{p} \phi_{j1}^2 = 1$$</div>
+
+    <p>Los loadings indican la <em>importancia</em> de cada variable original en cada componente. Valores grandes (en valor absoluto) significan que esa variable contribuye mucho a esa componente.</p>
+
+    <h3>La suma de cargas al cuadrado es siempre 1</h3>
+
+    <p>Esta restriccion no es arbitraria: garantiza que cada componente sea un <strong>vector unitario</strong> (longitud 1) en el espacio de las variables originales. Es equivalente a decir que el eigenvector esta normalizado.</p>
+
+    <div class="caja-concepto">
+      <strong>Por que importa la normalizacion:</strong> si no se impusiera esta restriccion, se podria escalar el vector de loadings por cualquier constante y obtener infinitas soluciones equivalentes. Al fijar la longitud a 1, la solucion es unica (salvo el signo) y los loadings son comparables entre si y entre distintos componentes.
+    </div>
+
+    <p>Verificacion con los loadings reales del dataset USArrests para PC1:</p>
+
+    <div class="formula-bloque">$$\phi_{11}^2 + \phi_{21}^2 + \phi_{31}^2 + \phi_{41}^2 = 1$$</div>
+
+    <div class="formula-bloque">$$0{.}5359^2 + 0{.}5832^2 + 0{.}2782^2 + 0{.}5434^2 = 0{.}2872 + 0{.}3401 + 0{.}0774 + 0{.}2953 = 1$$</div>
+
+    <div class="caja-verde">
+      <strong>Interpretacion geometrica:</strong> los loadings son las <em>cosenos directores</em> del componente respecto a cada eje original. Al estar normalizados, el cuadrado de cada loading representa la fraccion de la longitud del vector que apunta en esa direccion. La suma de esas fracciones debe ser necesariamente 1.
+    </div>
+
+    <h3>Ortogonalidad entre componentes principales</h3>
+
+    <p>Una propiedad fundamental del PCA es que todos los componentes principales son <strong>ortogonales</strong> entre si, es decir, sus vectores de loadings son perpendiculares. En terminos algebraicos, el producto punto entre dos componentes cualesquiera es cero:</p>
+
+    <div class="formula-bloque">$$\phi_k \cdot \phi_m = \sum_{j=1}^{p} \phi_{jk}\,\phi_{jm} = 0 \quad \text{para } k \neq m$$</div>
+
+    <p>La consecuencia practica mas importante de la ortogonalidad es que los <strong>scores de los componentes no estan correlacionados</strong>. Esto se puede verificar directamente calculando la matriz de correlaciones entre los scores:</p>
+
+    <div class="bloque-codigo">
+<span class="cm"># Verificar ortogonalidad: correlacion entre componentes</span>
+<br><span class="var">corr_matrix</span> = <span class="var">scores_df</span>.<span class="fn">corr</span>().<span class="fn">round</span>(<span class="num">1</span>).<span class="fn">abs</span>()
+<br><span class="fn">print</span>(<span class="var">corr_matrix</span>)
+    </div>
+
+    <div class="canvas-contenedor">
+      <h4>Matriz de correlaciones entre componentes principales</h4>
+      <p style="font-size:0.93rem; margin-bottom:1rem;">El resultado es una <strong>matriz identidad</strong>: la diagonal vale 1 (cada componente se correlaciona perfectamente consigo mismo) y todos los valores fuera de la diagonal son 0 (ningun par de componentes comparte informacion).</p>
+      <div id="matriz-corr-container" style="overflow-x:auto;"></div>
+      <div class="controles" style="margin-top:1rem;">
+        <button onclick="toggleMatrizCorr()">Mostrar valores / colores</button>
+        <span class="info-val" id="modo-matriz">Modo: numeros + color</span>
+      </div>
+      <p class="nota">Haz clic en cualquier celda para ver su interpretacion. La diagonal principal (azul) muestra la autocorrelacion = 1. El resto (blanco/gris) muestra correlacion = 0, confirmando la ortogonalidad.</p>
+    </div>
+
+    <div class="canvas-contenedor" id="demo-ortogonalidad">
+      <h4>Visualizacion interactiva de la ortogonalidad</h4>
+      <canvas id="canvas-orto" height="340"></canvas>
+      <div class="controles">
+        <label>Rotar vista: <input type="range" id="slider-orto" min="0" max="360" value="30" step="2"></label>
+        <span class="info-val" id="val-orto">30 deg</span>
+        <button onclick="resetOrto()">Resetear</button>
+      </div>
+      <p class="nota">Cada flecha representa un componente principal (PC1 en verde, PC2 en violeta). El angulo entre ellas es siempre 90 grados. Los puntos son las observaciones proyectadas.</p>
+    </div>
+
+    <div class="grid-2">
+      <div class="tarjeta">
+        <div class="tarjeta-titulo">Sin ortogonalidad (variables originales)</div>
+        <p>Las variables originales suelen estar correlacionadas. Por ejemplo, en USArrests, Murder y Assault tienen correlacion alta: un estado con muchos asesinatos tiende a tener muchos asaltos. Esto genera informacion redundante.</p>
+      </div>
+      <div class="tarjeta">
+        <div class="tarjeta-titulo">Con ortogonalidad (componentes PCA)</div>
+        <p>Los componentes PCA son por construccion incorrelacionados. PC1 captura el nivel general de criminalidad; PC2 captura urbanizacion. Son dimensiones completamente independientes: saber el valor de PC1 no dice nada sobre PC2.</p>
+      </div>
+    </div>
+
+    <div class="caja-cafe">
+      <strong>Por que la ortogonalidad es valiosa en Machine Learning:</strong> cuando se usan los scores de PCA como predictores de un modelo supervisado, la ausencia de correlacion entre ellos elimina la multicolinealidad, estabiliza los coeficientes estimados y facilita la interpretacion del modelo resultante.
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ===== SECCION 3: GEOMETRIA ===== -->
+  <section id="geometria">
+    <h2>Interpretacion geometrica</h2>
+
+    <p>Imaginemos datos bivariados (dos variables X1 y X2) como una nube de puntos. Los componentes principales son los nuevos ejes del sistema de coordenadas que mejor describe la variabilidad de esa nube.</p>
+
+    <div class="canvas-contenedor">
+      <h4>Demo: nube de puntos y componentes principales</h4>
+      <canvas id="canvas-geom" height="380"></canvas>
+      <div class="controles">
+        <label>Correlacion: <input type="range" id="slider-corr" min="-90" max="90" value="50" step="5"></label>
+        <span class="info-val" id="val-corr">50%</span>
+        <button onclick="regenerarPuntos()">Regenerar puntos</button>
+      </div>
+      <p class="nota">La flecha roja indica el primer componente principal (PC1); la verde indica PC2. Ambas son perpendiculares. Ajusta la correlacion para ver como cambian las direcciones.</p>
+    </div>
+
+    <p>Cada observacion que antes tenia coordenadas en el espacio original (X1, X2) ahora tiene nuevas coordenadas en el espacio de los componentes principales. Esas nuevas coordenadas se llaman <strong>scores</strong> o proyecciones.</p>
+
+    <div class="caja-concepto">
+      <strong>Proyecciones (scores):</strong> son la posicion de cada observacion en el nuevo sistema de ejes definido por los componentes principales. La proyeccion sobre PC1 es el valor de la primera componente para esa observacion.
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ===== SECCION 4: ALGORITMO ===== -->
+  <section id="algoritmo">
+    <h2>El algoritmo paso a paso</h2>
+
+    <ol class="pasos">
+      <li>
+        <div>
+          <strong>Estandarizar los datos.</strong> Restar la media de cada variable y dividir por su desviacion estandar. Esto garantiza que todas las variables tengan media 0 y desviacion 1. Si no se estandariza, las variables con mayor escala dominaran los componentes.
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>Calcular la matriz de covarianza.</strong> Con los datos estandarizados, construir la matriz de covarianza (o correlacion). Esta matriz es cuadrada (p x p) y simetrica.
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>Descomposicion en eigenvectores y eigenvalues.</strong> Resolver el problema de autovalores de la matriz de covarianza. Esto puede hacerse via SVD (Descomposicion en Valores Singulares), que es el metodo que usa sklearn por defecto.
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>Ordenar por eigenvalue descendente.</strong> El eigenvector con mayor eigenvalue es PC1 (captura mas varianza), el siguiente es PC2, y asi sucesivamente.
+        </div>
+      </li>
+      <li>
+        <div>
+          <strong>Proyectar los datos.</strong> Multiplicar los datos estandarizados por la matriz de eigenvectores para obtener los scores (coordenadas en el espacio PCA).
+        </div>
+      </li>
+    </ol>
+
+    <div class="caja-cafe">
+      <strong>Sobre la reproducibilidad:</strong> el PCA es deterministico — siempre produce los mismos componentes. La unica diferencia posible es el signo de los loadings (invertir todos los signos de un componente no cambia la informacion que contiene).
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ===== SECCION 5: VARIANZA EXPLICADA ===== -->
+  <section id="varianza">
+    <h2>Varianza explicada y seleccion de componentes</h2>
+
+    <p>La varianza total del conjunto de datos (con variables normalizadas) es:</p>
+
+    <div class="formula-bloque">$$VT = \sum_{j=1}^{p} \frac{1}{n} \sum_{i=1}^{n} x_{ij}^2$$</div>
+
+    <p>La proporcion de varianza explicada por el componente m es:</p>
+
+    <div class="formula-bloque">$$\text{PVE}_m = \frac{\displaystyle\sum_{i=1}^{n}\!\left(\sum_{j=1}^{p} \phi_{jm}\, x_{ij}\right)^{\!2}}{\displaystyle\sum_{j=1}^{p}\sum_{i=1}^{n} x_{ij}^2}$$</div>
+
+    <p>El sumatorio de todas las PVE es siempre 1 (si se calculan todos los componentes posibles).</p>
+
+    <h3>Scree plot — Seleccion optima de componentes</h3>
+
+    <p>No existe un criterio unico para elegir cuantos componentes conservar. La estrategia mas comun es el <em>scree plot</em>: graficar la proporcion de varianza acumulada y buscar el punto donde el incremento deja de ser sustancial.</p>
+
+    <div class="canvas-contenedor scree-contenedor">
+      <h4>Scree plot interactivo — Ejemplo dataset USArrests</h4>
+      <canvas id="canvas-scree" height="280"></canvas>
+      <div class="controles">
+        <label>Componentes a retener: <input type="range" id="slider-comp" min="1" max="4" value="2" step="1"></label>
+        <span class="info-val" id="val-comp">2 componentes</span>
+        <span class="info-val" id="val-var"></span>
+      </div>
+      <p class="nota">Dataset USArrests (50 estados, 4 variables). Las barras muestran la varianza por componente; la linea muestra la acumulada.</p>
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ===== SECCION 6: DEMO INTERACTIVA ===== -->
+  <section id="demo-pca">
+    <h2>Demo interactiva: PCA paso a paso</h2>
+
+    <p>Exploremos el ejercicio del notebook con los datos de ejemplo (4 observaciones x 2 variables):</p>
+
+    <div class="bloque-codigo">
+<span class="cm"># Datos originales: 4 observaciones, 2 variables</span>
+<br><span class="var">datos</span> = np.array([
+<br>  [<span class="num">2</span>, <span class="num">8</span>],
+<br>  [<span class="num">3</span>, <span class="num">6</span>],
+<br>  [<span class="num">4</span>, <span class="num">5</span>],
+<br>  [<span class="num">5</span>, <span class="num">3</span>]
+<br>])
+    </div>
+
+    <div class="canvas-contenedor">
+      <h4>Transformacion PCA — datos originales vs espacio PCA</h4>
+      <canvas id="canvas-transform" height="320"></canvas>
+      <div class="controles">
+        <button onclick="animarTransform()">Animar proyeccion</button>
+        <label>Vista: <input type="range" id="slider-anim" min="0" max="100" value="0" step="1"></label>
+        <span class="info-val" id="val-anim">Espacio original</span>
+      </div>
+      <p class="nota">Izquierda: espacio original (X1, X2). Derecha: espacio PCA (PC1, PC2). Los 4 puntos mantienen sus relaciones pero en nuevos ejes que maximizan la varianza.</p>
+    </div>
+
+    <h3>Resultados numericos del ejercicio</h3>
+
+    <table>
+      <thead>
+        <tr><th>Observacion</th><th>X1 (orig)</th><th>X2 (orig)</th><th>PC1 score</th><th>PC2 score</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Obs 1</td><td>2</td><td>8</td><td>-1.9293</td><td>0.0319</td></tr>
+        <tr><td>Obs 2</td><td>3</td><td>6</td><td>-0.5123</td><td>-0.1201</td></tr>
+        <tr><td>Obs 3</td><td>4</td><td>5</td><td>0.5123</td><td>0.1201</td></tr>
+        <tr><td>Obs 4</td><td>5</td><td>3</td><td>1.9293</td><td>-0.0319</td></tr>
+      </tbody>
+    </table>
+
+    <div class="caja-verde">
+      Los scores de PC1 tienen mucha mayor dispersion que los de PC2. Eso refleja que PC1 captura casi toda la varianza. Los dos puntos extremos (obs 1 y obs 4) estan opuestos en PC1, lo que tiene sentido: cuando X1 es bajo, X2 es alto, y viceversa — hay una relacion negativa fuerte entre las variables originales.
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ===== SECCION 7: LOADINGS ===== -->
+  <section id="loadings">
+    <h2>Interpretacion de loadings — Dataset USArrests</h2>
+
+    <p>Los loadings muestran como contribuye cada variable original a cada componente. Analizar su magnitud y signo permite darle un <em>nombre semantico</em> a cada componente.</p>
+
+    <div class="canvas-contenedor">
+      <h4>Heatmap de loadings interactivo</h4>
+      <canvas id="canvas-heatmap" height="220"></canvas>
+      <div class="controles">
+        <button onclick="toggleAbsoluto()">Alternar: valor / absoluto</button>
+        <span class="info-val" id="modo-heatmap">Mostrando valores reales</span>
+      </div>
+    </div>
+
+    <h3>Interpretacion de PC1 y PC2</h3>
+
+    <div class="caja-concepto">
+      <strong>PC1 — Componente de criminalidad general:</strong><br>
+      Loadings: Murder (0.536), Assault (0.583), UrbanPop (0.278), Rape (0.543)<br>
+      Los pesos de Murder, Assault y Rape son similares y mayores que UrbanPop. Esta componente resume el nivel general de criminalidad violenta del estado. Explica el 62% de la varianza.
+    </div>
+
+    <div class="caja-concepto">
+      <strong>PC2 — Componente de urbanizacion:</strong><br>
+      Loadings: Murder (-0.418), Assault (-0.188), UrbanPop (0.873), Rape (0.167)<br>
+      UrbanPop domina con diferencia. Esta componente captura principalmente el nivel de urbanizacion del estado. Explica el 24.7% de la varianza.
+    </div>
+
+    <p>Con solo estas dos componentes se explica el <strong>86.75%</strong> de la varianza total del dataset, reduciendo la dimensionalidad de 4 a 2 variables sin perder demasiada informacion.</p>
+
+    <h3>Loadings en barras</h3>
+
+    <div id="barras-loadings" style="margin: 1.5rem 0;">
+      <div style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+        <button class="btn-pc active" onclick="mostrarPC(1)" id="btn-pc1" style="font-family:var(--font-titulo); font-size:0.85rem; font-weight:600; background:var(--verde); color:white; border:none; padding:0.35rem 1rem; border-radius:4px; cursor:pointer;">PC1</button>
+        <button class="btn-pc" onclick="mostrarPC(2)" id="btn-pc2" style="font-family:var(--font-titulo); font-size:0.85rem; font-weight:600; background:var(--gris-claro); color:var(--gris-medio); border:1px solid var(--borde); padding:0.35rem 1rem; border-radius:4px; cursor:pointer;">PC2</button>
+        <button class="btn-pc" onclick="mostrarPC(3)" id="btn-pc3" style="font-family:var(--font-titulo); font-size:0.85rem; font-weight:600; background:var(--gris-claro); color:var(--gris-medio); border:1px solid var(--borde); padding:0.35rem 1rem; border-radius:4px; cursor:pointer;">PC3</button>
+        <button class="btn-pc" onclick="mostrarPC(4)" id="btn-pc4" style="font-family:var(--font-titulo); font-size:0.85rem; font-weight:600; background:var(--gris-claro); color:var(--gris-medio); border:1px solid var(--borde); padding:0.35rem 1rem; border-radius:4px; cursor:pointer;">PC4</button>
+      </div>
+      <div id="barras-container"></div>
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ===== SECCION PROYECCIONES ===== -->
+  <section id="proyecciones">
+    <h2>Proyecciones: utilidad e interpretacion</h2>
+
+    <p>Una vez ajustado el modelo PCA, cada observacion pasa de tener coordenadas en el espacio original (p variables) a tener coordenadas en el espacio de los componentes principales. Estas nuevas coordenadas se denominan <strong>scores</strong> o proyecciones y son el resultado practico mas util del PCA.</p>
+
+    <div class="caja-verde">
+      <strong>Que representa cada score:</strong> el score de un estado en PC1 indica su posicion a lo largo del eje de "criminalidad general". Un score alto en PC1 significa estado con alta criminalidad; un score alto en PC2 significa estado muy urbanizado con baja tasa de homicidio. Cada componente tiene una interpretacion semantica propia derivada de sus loadings.
+    </div>
+
+    <h3>Como se calculan — producto matricial</h3>
+
+    <p>La proyeccion es simplemente el producto punto entre los datos estandarizados y los eigenvectores. Hay dos formas equivalentes de obtenerla:</p>
+
+    <div class="bloque-codigo">
+<span class="cm"># Forma 1 — usando .transform() del pipeline (recomendado)</span>
+<br><span class="var">proyecciones</span> = <span class="var">pca_pipe</span>.<span class="fn">transform</span>(<span class="var">X</span>=<span class="var">datos</span>)
+<br><span class="var">proyecciones</span> = <span class="var">pd</span>.<span class="fn">DataFrame</span>(
+<br>    <span class="var">proyecciones</span>,
+<br>    <span class="var">columns</span> = [<span class="st">'PC1'</span>, <span class="st">'PC2'</span>, <span class="st">'PC3'</span>, <span class="st">'PC4'</span>],
+<br>    <span class="var">index</span>   = <span class="var">datos</span>.<span class="var">index</span>
+<br>)
+<br><span class="var">proyecciones</span>.<span class="fn">head</span>()
+    </div>
+
+    <div class="bloque-codigo">
+<span class="cm"># Forma 2 — producto matricial manual (equivalente exacto)</span>
+<br><span class="cm">#   modelo_pca.components_  →  shape (4x4)   los eigenvectores</span>
+<br><span class="cm">#   scale(datos).T          →  shape (4x50)  datos estandarizados traspuestos</span>
+<br><span class="cm">#   resultado               →  shape (4x50)  → transponer → (50x4)</span>
+<br><span class="var">proyecciones</span> = <span class="var">np</span>.<span class="fn">dot</span>(<span class="var">modelo_pca</span>.<span class="var">components_</span>, <span class="fn">scale</span>(<span class="var">datos</span>).<span class="var">T</span>)
+<br><span class="var">proyecciones</span> = <span class="var">pd</span>.<span class="fn">DataFrame</span>(<span class="var">proyecciones</span>, <span class="var">index</span> = [<span class="st">'PC1'</span>, <span class="st">'PC2'</span>, <span class="st">'PC3'</span>, <span class="st">'PC4'</span>])
+<br><span class="var">proyecciones</span> = <span class="var">proyecciones</span>.<span class="fn">transpose</span>().<span class="fn">set_index</span>(<span class="var">datos</span>.<span class="var">index</span>)
+<br><span class="var">proyecciones</span>.<span class="fn">head</span>()
+    </div>
+
+    <p>Ambas formas producen el mismo resultado. El <code>np.dot</code> explicita que la proyeccion es una multiplicacion de la matriz de componentes (4x4) por la transpuesta de los datos escalados (4x50), dando una matriz (4x50) que al transponerse queda en la forma habitual (50x4) — una fila por estado, una columna por componente.</p>
+
+    <h3>Scores reales — primeros 5 estados (USArrests)</h3>
+
+    <table>
+      <thead>
+        <tr><th>Estado</th><th>PC1</th><th>PC2</th><th>PC3</th><th>PC4</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Alabama</strong></td><td>0.9856</td><td>-1.1334</td><td>-0.4443</td><td>-0.1563</td></tr>
+        <tr><td><strong>Alaska</strong></td><td>1.9501</td><td>-1.0732</td><td>2.0400</td><td>0.4386</td></tr>
+        <tr><td><strong>Arizona</strong></td><td>1.7632</td><td>0.7460</td><td>0.0548</td><td>0.8347</td></tr>
+        <tr><td><strong>Arkansas</strong></td><td>-0.1414</td><td>-1.1198</td><td>0.1146</td><td>0.1828</td></tr>
+        <tr><td><strong>California</strong></td><td>2.5240</td><td>1.5429</td><td>0.5986</td><td>0.3420</td></tr>
+      </tbody>
+    </table>
+
+    <div class="caja-concepto">
+      <strong>Como leer esta tabla:</strong> California tiene el score mas alto en PC1 (+2.52) — estado de alta criminalidad. Alaska tambien tiene PC1 alto pero PC2 muy negativo (-1.07), lo que indica alta criminalidad pero menor urbanizacion relativa. Arkansas tiene PC1 cercano a cero: estado promedio en criminalidad.
+    </div>
+
+    <h3>Regla practica de interpretacion</h3>
+
+    <div style="overflow-x:auto; margin: 1.5rem 0;">
+      <table>
+        <thead><tr><th>Valor del score</th><th>Significado para ese componente</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Alto positivo</strong> (ej: +2.5)</td><td>Estado con alta presencia del "perfil" que define ese PC</td></tr>
+          <tr><td><strong>Cercano a cero</strong> (ej: ±0.2)</td><td>Estado promedio en esa dimension</td></tr>
+          <tr><td><strong>Alto negativo</strong> (ej: -2.5)</td><td>Estado con perfil opuesto al que define ese PC</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="caja-cafe">
+      <strong>Lo que revela el scatter PC1 vs PC2:</strong>
+      <br>— Florida, California, Nevada (esquina superior derecha): alta criminalidad Y alta urbanizacion
+      <br>— Vermont, North Dakota (esquina inferior izquierda): estados mas seguros y rurales
+      <br>— Mississippi, North Carolina (zona derecha baja): alta criminalidad pero baja urbanizacion
+      <br><br>PC1 + PC2 capturan el 86.7% de la varianza total, por lo que esta visualizacion 2D es una representacion muy fiel de los datos originales en 4 dimensiones.
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ===== SECCION VISUALIZACION ===== -->
+  <section id="visualizacion">
+    <h2>Visualizacion — Scatter PC1 x PC2 (50 estados)</h2>
+
+    <p>La proyeccion de los 50 estados sobre PC1 y PC2 permite visualizar en un plano 2D una estructura que originalmente vivia en 4 dimensiones. Cada punto es un estado; el color indica la region geografica.</p>
+
+    <!-- BARRAS VARIANZA estilo pca_visualizacion -->
+    <div style="border:1px solid var(--borde); border-radius:8px; padding:1.6rem 2rem; margin-bottom:2rem; background:#fafafa;">
+      <p style="font-family:var(--font-titulo); font-weight:600; font-size:0.95rem; margin-bottom:1.2rem; color:var(--verde);">Varianza explicada por componente</p>
+      <div style="display:grid; grid-template-columns:42px 1fr 58px 100px; gap:12px 18px; align-items:center; font-family:var(--font-mono); font-size:0.82rem;">
+        <span style="color:#1a6ef5; font-weight:600; text-align:right;">PC1</span>
+        <div style="height:8px; background:#e8e8e8; border-radius:4px; overflow:hidden;"><div style="height:100%; width:62%; background:#1a6ef5; border-radius:4px; animation:crecer 1.2s cubic-bezier(.22,1,.36,1) forwards;"></div></div>
+        <span style="color:#333;">62.0%</span><span style="color:#aaa; font-size:0.75rem;">acum. 62.0%</span>
+
+        <span style="color:#e05a00; font-weight:600; text-align:right;">PC2</span>
+        <div style="height:8px; background:#e8e8e8; border-radius:4px; overflow:hidden;"><div style="height:100%; width:24.7%; background:#e05a00; border-radius:4px; animation:crecer 1.2s .2s cubic-bezier(.22,1,.36,1) both;"></div></div>
+        <span style="color:#333;">24.7%</span><span style="color:#aaa; font-size:0.75rem;">acum. 86.7%</span>
+
+        <span style="color:#c0392b; font-weight:600; text-align:right;">PC3</span>
+        <div style="height:8px; background:#e8e8e8; border-radius:4px; overflow:hidden;"><div style="height:100%; width:8.9%; background:#c0392b; border-radius:4px; animation:crecer 1.2s .35s cubic-bezier(.22,1,.36,1) both;"></div></div>
+        <span style="color:#333;">8.9%</span><span style="color:#aaa; font-size:0.75rem;">acum. 95.7%</span>
+
+        <span style="color:#aaa; font-weight:600; text-align:right;">PC4</span>
+        <div style="height:8px; background:#e8e8e8; border-radius:4px; overflow:hidden;"><div style="height:100%; width:4.3%; background:#aaa; border-radius:4px; animation:crecer 1.2s .5s cubic-bezier(.22,1,.36,1) both;"></div></div>
+        <span style="color:#333;">4.3%</span><span style="color:#aaa; font-size:0.75rem;">acum. 100.0%</span>
+      </div>
+    </div>
+
+    <!-- TARJETAS INTERPRETACION PC1/PC2 -->
+    <div class="grid-2" style="margin-bottom:2rem;">
+      <div class="tarjeta">
+        <div class="tarjeta-titulo">PC1 — "Nivel general de criminalidad"</div>
+        <p>Carga alta en Murder (0.54), Assault (0.58) y Rape (0.54). Valor alto implica estado con alta criminalidad; valor bajo implica estado seguro/rural. Ejemplos: Florida (+3.01), Nevada (+2.87) vs North Dakota (-2.99), Vermont (-2.80).</p>
+      </div>
+      <div class="tarjeta">
+        <div class="tarjeta-titulo">PC2 — "Urbanizacion vs crimen rural"</div>
+        <p>Carga dominante en UrbanPop (0.87), inversa a Murder (-0.42). Valor alto implica muy urbanizado con menor tasa de homicidio; valor bajo implica rural con alta tasa de homicidio. Ejemplos: Hawaii (+1.57), California (+1.54) vs Mississippi (-2.39).</p>
+      </div>
+    </div>
+
+    <!-- SCATTER INTERACTIVO canvas -->
+    <div class="canvas-contenedor">
+      <h4>Scatter PC1 x PC2 — 50 estados de EE.UU. (interactivo)</h4>
+      <canvas id="canvas-scatter" height="480"></canvas>
+      <div class="controles">
+        <label>
+          <input type="checkbox" id="chk-etiquetas" checked onchange="dibujarScatter()"> Mostrar nombres
+        </label>
+        <button onclick="resetZoom()">Resetear zoom</button>
+        <span class="info-val" id="hover-estado"></span>
+      </div>
+      <p class="nota">Pasa el cursor sobre un punto para ver el estado y sus scores. El eje X (PC1) separa estados segun nivel de criminalidad; el eje Y (PC2) separa por urbanizacion.</p>
+    </div>
+
+    <!-- CODIGO PLOTLY -->
+    <h3>Codigo Python — Scatter interactivo con Plotly</h3>
+
+    <div class="bloque-codigo">
+<span class="cm"># pip install plotly pandas scikit-learn  (ya incluido en Anaconda)</span>
+<br><span class="kw">import</span> <span class="var">pandas</span> <span class="kw">as</span> <span class="var">pd</span>
+<br><span class="kw">import</span> <span class="var">numpy</span> <span class="kw">as</span> <span class="var">np</span>
+<br><span class="kw">from</span> <span class="var">sklearn.preprocessing</span> <span class="kw">import</span> <span class="fn">StandardScaler</span>
+<br><span class="kw">from</span> <span class="var">sklearn.decomposition</span> <span class="kw">import</span> <span class="fn">PCA</span>
+<br><span class="kw">import</span> <span class="var">plotly.express</span> <span class="kw">as</span> <span class="var">px</span>
+<br><span class="kw">from</span> <span class="var">IPython.display</span> <span class="kw">import</span> <span class="fn">display</span>, <span class="fn">HTML</span>
+<br>
+<br><span class="cm"># Cargar USArrests desde GitHub</span>
+<br><span class="var">url</span>   = <span class="st">"https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/master/csv/datasets/USArrests.csv"</span>
+<br><span class="var">datos</span> = <span class="var">pd</span>.<span class="fn">read_csv</span>(<span class="var">url</span>, <span class="var">index_col</span>=<span class="num">0</span>)
+<br>
+<br><span class="cm"># Escalar + PCA 2 componentes</span>
+<br><span class="var">X_sc</span> = <span class="fn">StandardScaler</span>().<span class="fn">fit_transform</span>(<span class="var">datos</span>)
+<br><span class="var">pca</span>  = <span class="fn">PCA</span>(<span class="var">n_components</span>=<span class="num">2</span>).<span class="fn">fit</span>(<span class="var">X_sc</span>)
+<br><span class="var">proj</span> = <span class="var">pca</span>.<span class="fn">transform</span>(<span class="var">X_sc</span>)
+<br><span class="var">ve</span>   = <span class="var">pca</span>.<span class="var">explained_variance_ratio_</span>
+<br>
+<br><span class="cm"># DataFrame de proyecciones + region geografica</span>
+<br><span class="var">df</span> = <span class="var">pd</span>.<span class="fn">DataFrame</span>(<span class="var">proj</span>, <span class="var">columns</span>=[ <span class="st">'PC1'</span>, <span class="st">'PC2'</span>], <span class="var">index</span>=<span class="var">datos</span>.<span class="var">index</span>).<span class="fn">reset_index</span>()
+<br><span class="var">df</span>.<span class="var">columns</span> = [<span class="st">'Estado'</span>, <span class="st">'PC1'</span>, <span class="st">'PC2'</span>]
+<br>
+<br><span class="cm"># Scatter interactivo con Plotly</span>
+<br><span class="var">fig</span> = <span class="var">px</span>.<span class="fn">scatter</span>(
+<br>    <span class="var">df</span>, <span class="var">x</span>=<span class="st">'PC1'</span>, <span class="var">y</span>=<span class="st">'PC2'</span>, <span class="var">text</span>=<span class="st">'Estado'</span>, <span class="var">color</span>=<span class="st">'Region'</span>,
+<br>    <span class="var">title</span>=<span class="var">f</span><span class="st">"PCA USArrests | PC1: {ve[0]:.1%}  PC2: {ve[1]:.1%}"</span>
+<br>)
+<br><span class="fn">display</span>(<span class="fn">HTML</span>(<span class="var">fig</span>.<span class="fn">to_html</span>(<span class="var">full_html</span>=<span class="kw">False</span>, <span class="var">include_plotlyjs</span>=<span class="kw">True</span>)))
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- ===== SECCION: CRITERIOS SELECCION ===== -->
+  <section id="criterios">
+    <h2>Criterios para seleccionar el numero de componentes</h2>
+
+    <p>Una de las decisiones mas importantes al aplicar PCA es determinar cuantos componentes conservar. No existe un criterio unico y universalmente correcto: la eleccion depende del contexto, el objetivo del analisis y el nivel de tolerancia a la perdida de informacion.</p>
+
+    <div class="grid-2" style="margin: 2rem 0;">
+      <div class="tarjeta">
+        <div class="tarjeta-titulo" style="color:var(--verde);">1. Regla de la varianza acumulada</div>
+        <p>La mas usada en la practica. Se fija un umbral de varianza acumulada y se selecciona el minimo numero de componentes que lo superan. El umbral varia segun el dominio:</p>
+      </div>
+      <div class="tarjeta">
+        <div class="tarjeta-titulo" style="color:var(--violeta);">2. Regla de Kaiser (&lambda; &gt; 1)</div>
+        <p>Retener solo los componentes cuyo eigenvalue supere 1. La justificacion es que un componente debe explicar mas varianza que una sola variable original estandarizada (que tiene varianza = 1). Tiende a seleccionar pocos componentes.</p>
+      </div>
+      <div class="tarjeta">
+        <div class="tarjeta-titulo" style="color:var(--cafe);">3. Scree plot — el "codo"</div>
+        <p>Graficar los eigenvalues en orden descendente y buscar el punto donde la curva pasa de caer bruscamente a estabilizarse. Los componentes antes del codo se retienen; los que caen en la zona plana se descartan.</p>
+      </div>
+      <div class="tarjeta">
+        <div class="tarjeta-titulo" style="color:var(--gris-medio);">4. Bootstrap / Permutacion</div>
+        <p>Comparar los eigenvalues reales con los obtenidos al permutar aleatoriamente los datos. Se retienen los componentes cuyo eigenvalue real supera al esperado por azar. Es el criterio mas riguroso, usado en publicaciones cientificas.</p>
+      </div>
+    </div>
+
+    <h3>Umbrales de varianza acumulada segun contexto</h3>
+
+    <div id="tabla-umbrales" style="overflow-x:auto; margin: 1.5rem 0;">
+      <table>
+        <thead>
+          <tr><th>Umbral</th><th>Contexto de uso</th><th>Nivel de exigencia</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>70%</strong></td><td>Exploracion preliminar, muchas variables, datos ruidosos</td><td><span class="tag tag-cafe">Bajo</span></td></tr>
+          <tr><td><strong>80%</strong></td><td>Ciencias sociales, economia, encuestas</td><td><span class="tag tag-cafe">Medio-bajo</span></td></tr>
+          <tr><td><strong>85%</strong></td><td>Criterio intermedio — el mas comun en practica docente y aplicada</td><td><span class="tag tag-verde">Medio</span></td></tr>
+          <tr><td><strong>90%</strong></td><td>Ingenieria, ciencias exactas, modelos de produccion</td><td><span class="tag tag-verde">Medio-alto</span></td></tr>
+          <tr><td><strong>95%</strong></td><td>Maxima fidelidad, datos de alta precision, investigacion</td><td><span class="tag tag-violeta">Alto</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Visualizacion interactiva — criterio del codo</h3>
+
+    <div class="canvas-contenedor">
+      <h4>Eigenvalues y criterio de Kaiser (&lambda; &gt; 1) — USArrests</h4>
+      <canvas id="canvas-kaiser" height="260"></canvas>
+      <div class="controles">
+        <button onclick="toggleKaiser()">Mostrar / ocultar Kaiser</button>
+        <button onclick="toggleCodo()">Mostrar / ocultar codo</button>
+        <span class="info-val" id="info-kaiser">Kaiser: lambda > 1 → retener PC1 y PC2</span>
+      </div>
+      <p class="nota">La linea roja punteada marca el umbral de Kaiser (eigenvalue = 1). El codo visual se produce entre PC1 y PC2, coincidiendo con el criterio de varianza acumulada del 86.7%.</p>
+    </div>
+
+    <div class="caja-concepto">
+      <strong>Recomendacion practica:</strong>
+      <br>— Docencia y exploracion: varianza acumulada entre 80% y 85%
+      <br>— Investigacion aplicada: Kaiser + Scree Plot como criterios complementarios
+      <br>— Publicacion cientifica: Bootstrap o prueba de permutacion
+      <br><br>En el dataset USArrests, los tres criterios coinciden: seleccionar <strong>2 componentes</strong> (86.7% de varianza, eigenvalues de PC1=2.48 y PC2=0.99 apenas bajo el umbral, codo entre PC1 y PC2).
+    </div>
+
+    <h3>Implementacion en sklearn — seleccion automatica por varianza</h3>
+
+    <div class="bloque-codigo">
+<span class="cm"># Opcion 1: fijar numero de componentes manualmente</span>
+<br><span class="var">pca_2</span> = <span class="fn">PCA</span>(<span class="var">n_components</span>=<span class="num">2</span>)
+<br>
+<br><span class="cm"># Opcion 2: retener el minimo de CPs que expliquen al menos X% de varianza</span>
+<br><span class="var">pca_85</span> = <span class="fn">PCA</span>(<span class="var">n_components</span>=<span class="num">0.85</span>)   <span class="cm"># retiene hasta llegar al 85%</span>
+<br><span class="var">pca_95</span> = <span class="fn">PCA</span>(<span class="var">n_components</span>=<span class="num">0.95</span>)   <span class="cm"># retiene hasta llegar al 95%</span>
+    </div>
+
+    <h3>Criterio de Kaiser — implementacion paso a paso</h3>
+
+    <p>El criterio de Kaiser aplicado sobre un objeto PCA ya ajustado de sklearn se implementa de la siguiente forma. El atributo <code>explained_variance_</code> contiene los eigenvalues reales (no la proporcion de varianza, sino los valores propios en escala original):</p>
+
+    <div class="bloque-codigo">
+<span class="cm"># Assuming pca is already fitted PCA object from sklearn</span>
+<br><span class="var">eigenvalues</span> = <span class="var">pca</span>.<span class="var">explained_variance_</span>
+<br>
+<br><span class="cm"># Applying Kaiser Criterion</span>
+<br><span class="var">kaiser_criterion</span> = <span class="var">eigenvalues</span> &gt; <span class="num">1</span>
+<br>
+<br><span class="cm"># Get the number of components that satisfy the Kaiser Criterion</span>
+<br><span class="var">n_components_kaiser</span> = <span class="fn">sum</span>(<span class="var">kaiser_criterion</span>)
+<br>
+<br><span class="cm"># Print the components that satisfy the criterion</span>
+<br><span class="fn">print</span>(<span class="var">f</span><span class="st">"Number of components with eigenvalue &gt; 1: {n_components_kaiser}"</span>)
+<br><span class="var">important_components</span> = <span class="var">np</span>.<span class="fn">arange</span>(<span class="num">1</span>, <span class="var">n_components_kaiser</span> + <span class="num">1</span>)
+<br><span class="fn">print</span>(<span class="var">f</span><span class="st">"Important components according to Kaiser Criterion: {important_components}"</span>)
+<br>
+<br><span class="cm"># Optionally, if you want to see which specific components satisfy the criterion</span>
+<br><span class="kw">for</span> <span class="var">i</span>, (<span class="var">ev</span>, <span class="var">satisfy</span>) <span class="kw">in</span> <span class="fn">enumerate</span>(<span class="fn">zip</span>(<span class="var">eigenvalues</span>, <span class="var">kaiser_criterion</span>), <span class="var">start</span>=<span class="num">1</span>):
+<br>    <span class="kw">if</span> <span class="var">satisfy</span>:
+<br>        <span class="fn">print</span>(<span class="var">f</span><span class="st">"Component {i} with eigenvalue: {ev}"</span>)
+<br><div class="output">Number of components with eigenvalue &gt; 1: 2
+<br>Important components according to Kaiser Criterion: [1 2]
+<br>Component 1 with eigenvalue: 2.5308587542341767
+<br>Component 2 with eigenvalue: 1.0099644413671853</div>
+    </div>
+
+    <div class="caja-verde">
+      <strong>Lectura del output:</strong> el criterio de Kaiser identifica <strong>2 componentes</strong> con eigenvalue mayor a 1. PC1 tiene lambda = 2.53 (explica 2.53 veces la varianza de una variable original) y PC2 tiene lambda = 1.01 (apenas supera el umbral). PC3 y PC4 quedarian descartados. Este resultado coincide con el criterio de varianza acumulada: PC1 + PC2 = 86.7%.
+    </div>
+
+    <div class="caja-concepto">
+      <strong>Nota sobre <code>explained_variance_</code> vs <code>explained_variance_ratio_</code>:</strong>
+      <br>— <code>pca.explained_variance_</code>: eigenvalues en escala absoluta (los lambda). Se usan para Kaiser.
+      <br>— <code>pca.explained_variance_ratio_</code>: proporcion de varianza explicada (entre 0 y 1). Se usan para el umbral de varianza acumulada.
+      <br>— Ambos estan ordenados de mayor a menor por sklearn automaticamente.
+    </div>
+
+  <hr class="sep">
+
+  <!-- ===== SECCION: PCA + REGRESION ===== -->
+  <section id="pca-regresion">
+    <h2>PCA combinado con regresion</h2>
+
+    <p>Una de las aplicaciones mas poderosas del PCA en Machine Learning es su uso como etapa de preprocesado antes de ajustar un modelo de regresion. Esta combinacion se conoce como <strong>Regresion de Componentes Principales</strong> (PCR — Principal Component Regression).</p>
+
+    <h3>El problema que resuelve</h3>
+
+    <p>La regresion lineal ordinaria sufre cuando los predictores estan altamente correlacionados entre si (multicolinealidad). En ese escenario:</p>
+
+    <div class="grid-2">
+      <div class="tarjeta">
+        <div class="tarjeta-titulo" style="color:#c0392b;">Problemas sin PCA</div>
+        <p>Los coeficientes estimados son inestables: pequenos cambios en los datos producen grandes cambios en los coeficientes. Los errores estandar se inflan, las pruebas t pierden potencia y la interpretacion se vuelve ambigua. Ademas, con p &gt; n el sistema es indeterminado.</p>
+      </div>
+      <div class="tarjeta">
+        <div class="tarjeta-titulo" style="color:var(--verde);">Soluciones con PCA</div>
+        <p>Al proyectar los datos en el espacio PCA antes de ajustar la regresion, los predictores del modelo (los scores) son por construccion incorrelacionados. Los coeficientes son estables, interpretables y el modelo generaliza mejor a datos nuevos.</p>
+      </div>
+    </div>
+
+    <h3>El flujo PCR paso a paso</h3>
+
+    <ol class="pasos">
+      <li><div><strong>Estandarizar X.</strong> Escalar todas las variables predictoras a media 0 y desviacion 1 usando StandardScaler.</div></li>
+      <li><div><strong>Ajustar PCA sobre X escalado.</strong> Calcular los k componentes principales que capturan el umbral de varianza deseado.</div></li>
+      <li><div><strong>Transformar X en scores.</strong> Proyectar los datos originales al espacio PCA. Se obtiene una matriz de dimensiones (n, k) con k &lt;&lt; p.</div></li>
+      <li><div><strong>Ajustar la regresion sobre los scores.</strong> Usar los k scores como predictores de la variable respuesta Y. Al ser ortogonales, la regresion es numericamente estable.</div></li>
+      <li><div><strong>Interpretar y predecir.</strong> Para nuevos datos, primero transformarlos con el PCA entrenado, luego aplicar el modelo de regresion.</div></li>
+    </ol>
+
+    <h3>Formula del modelo PCR</h3>
+
+    <div class="formula-bloque">$$\hat{Y} = \beta_0 + \beta_1 Z_1 + \beta_2 Z_2 + \ldots + \beta_k Z_k$$</div>
+
+    <p>Donde $Z_1, Z_2, \ldots, Z_k$ son los scores de los k componentes principales retenidos, y los $\beta_j$ son los coeficientes estimados por minimos cuadrados ordinarios sobre ese espacio ortogonal.</p>
+
+    <div class="caja-concepto">
+      <strong>Diferencia clave con Ridge y Lasso:</strong> PCR descarta completamente los componentes de baja varianza (los elimina del modelo). Ridge y Lasso los encogen hacia cero pero los mantienen. PCR es la opcion mas interpretable cuando los componentes tienen un significado semantico claro, como en el ejemplo de USArrests donde PC1 = criminalidad y PC2 = urbanizacion.
+    </div>
+
+    <h3>Implementacion completa en sklearn</h3>
+
+    <div class="bloque-codigo">
+<span class="kw">from</span> <span class="var">sklearn.decomposition</span> <span class="kw">import</span> <span class="fn">PCA</span>
+<br><span class="kw">from</span> <span class="var">sklearn.linear_model</span> <span class="kw">import</span> <span class="fn">LinearRegression</span>, <span class="fn">LogisticRegression</span>
+<br><span class="kw">from</span> <span class="var">sklearn.pipeline</span> <span class="kw">import</span> <span class="fn">Pipeline</span>
+<br><span class="kw">from</span> <span class="var">sklearn.preprocessing</span> <span class="kw">import</span> <span class="fn">StandardScaler</span>
+<br><span class="kw">from</span> <span class="var">sklearn.model_selection</span> <span class="kw">import</span> <span class="fn">cross_val_score</span>
+<br>
+<br><span class="cm"># ── PCR: Regresion lineal sobre componentes principales ──────</span>
+<br><span class="var">pcr_pipe</span> = <span class="fn">Pipeline</span>([
+<br>    (<span class="st">'scaler'</span>, <span class="fn">StandardScaler</span>()),
+<br>    (<span class="st">'pca'</span>,    <span class="fn">PCA</span>(<span class="var">n_components</span>=<span class="num">0.85</span>)),   <span class="cm"># retener 85% varianza</span>
+<br>    (<span class="st">'reg'</span>,    <span class="fn">LinearRegression</span>())
+<br>])
+<br>
+<br><span class="cm"># Ajustar y evaluar con validacion cruzada (5 folds)</span>
+<br><span class="var">scores</span> = <span class="fn">cross_val_score</span>(
+<br>    <span class="var">pcr_pipe</span>, <span class="var">X</span>, <span class="var">y</span>,
+<br>    <span class="var">cv</span>=<span class="num">5</span>, <span class="var">scoring</span>=<span class="st">'r2'</span>
+<br>)
+<br><span class="fn">print</span>(<span class="var">f</span><span class="st">"R² medio (CV): {scores.mean():.3f} ± {scores.std():.3f}"</span>)
+<br>
+<br><span class="cm"># ── Seleccionar k optimo por cross-validation ────────────────</span>
+<br><span class="var">resultados</span> = []
+<br><span class="kw">for</span> <span class="var">k</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1</span>, <span class="var">X</span>.<span class="var">shape</span>[<span class="num">1</span>] + <span class="num">1</span>):
+<br>    <span class="var">pipe_k</span> = <span class="fn">Pipeline</span>([
+<br>        (<span class="st">'sc'</span>, <span class="fn">StandardScaler</span>()),
+<br>        (<span class="st">'pca'</span>, <span class="fn">PCA</span>(<span class="var">n_components</span>=<span class="var">k</span>)),
+<br>        (<span class="st">'lr'</span>, <span class="fn">LinearRegression</span>())
+<br>    ])
+<br>    <span class="var">r2</span> = <span class="fn">cross_val_score</span>(<span class="var">pipe_k</span>, <span class="var">X</span>, <span class="var">y</span>, <span class="var">cv</span>=<span class="num">5</span>, <span class="var">scoring</span>=<span class="st">'r2'</span>).<span class="fn">mean</span>()
+<br>    <span class="var">resultados</span>.<span class="fn">append</span>({<span class="st">'k'</span>: <span class="var">k</span>, <span class="st">'R2_CV'</span>: <span class="fn">round</span>(<span class="var">r2</span>, <span class="num">4</span>)})
+<br>
+<br><span class="var">pd</span>.<span class="fn">DataFrame</span>(<span class="var">resultados</span>)  <span class="cm"># elegir k con mayor R2_CV</span>
+    </div>
+
+    <h3>Comparacion: regresion con X original vs PCR</h3>
+
+    <div class="canvas-contenedor">
+      <h4>Efecto de la multicolinealidad — simulacion interactiva</h4>
+      <canvas id="canvas-pcr" height="300"></canvas>
+      <div class="controles">
+        <label>Correlacion entre predictores: <input type="range" id="slider-pcr" min="0" max="98" value="30" step="2"></label>
+        <span class="info-val" id="val-pcr">rho = 0.30</span>
+      </div>
+      <p class="nota">Aumenta la correlacion entre los predictores X1 y X2 para ver como se inflan los errores estandar de la regresion OLS (naranja). Los coeficientes PCR (verde) permanecen estables porque trabajan sobre ejes ortogonales.</p>
+    </div>
+
+    <h3>Cuando usar PCR y cuando no</h3>
+
+    <div style="overflow-x:auto; margin: 1.5rem 0;">
+      <table>
+        <thead><tr><th>Situacion</th><th>PCR recomendado</th><th>Alternativa</th></tr></thead>
+        <tbody>
+          <tr><td>Predictores altamente correlacionados (VIF &gt; 5)</td><td><span class="tag tag-verde">Si</span></td><td>Ridge, Lasso</td></tr>
+          <tr><td>p &gt; n (mas variables que observaciones)</td><td><span class="tag tag-verde">Si</span></td><td>Lasso, PLS</td></tr>
+          <tr><td>Interpretacion de los componentes es clara</td><td><span class="tag tag-verde">Si</span></td><td>—</td></tr>
+          <tr><td>Se necesita seleccion de variables (sparsity)</td><td><span class="tag tag-cafe">No</span></td><td>Lasso, Elastic Net</td></tr>
+          <tr><td>Los CPs deben maximizar covarianza con Y</td><td><span class="tag tag-cafe">No</span></td><td>PLS Regression</td></tr>
+          <tr><td>Se requiere interpretacion en espacio original</td><td><span class="tag tag-cafe">Cuidado</span></td><td>Rotacion Varimax</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="caja-cafe">
+      <strong>Limitacion importante de PCR:</strong> los componentes se calculan maximizando la varianza de X, sin considerar Y en absoluto. Puede ocurrir que el componente que mas varianza captura en X sea el menos relevante para predecir Y. En esos casos, la <em>Regresion de Minimos Cuadrados Parciales</em> (PLS) es superior porque calcula componentes que maximizan la covarianza entre X e Y simultaneamente.
+    </div>
+  </section>
+
+  <hr class="sep">
+
+    <p>La clase <code>sklearn.decomposition.PCA</code> implementa todas las funcionalidades necesarias. El flujo estandar combina un <code>StandardScaler</code> y <code>PCA</code> dentro de un pipeline.</p>
+
+    <h3>Flujo completo — Dataset USArrests</h3>
+
+    <div class="bloque-codigo">
+<span class="kw">import</span> <span class="var">numpy</span> <span class="kw">as</span> <span class="var">np</span>
+<br><span class="kw">import</span> <span class="var">pandas</span> <span class="kw">as</span> <span class="var">pd</span>
+<br><span class="kw">from</span> <span class="var">sklearn.decomposition</span> <span class="kw">import</span> <span class="fn">PCA</span>
+<br><span class="kw">from</span> <span class="var">sklearn.pipeline</span> <span class="kw">import</span> <span class="fn">make_pipeline</span>
+<br><span class="kw">from</span> <span class="var">sklearn.preprocessing</span> <span class="kw">import</span> <span class="fn">StandardScaler</span>
+<br>
+<br><span class="cm"># Cargar datos</span>
+<br><span class="var">datos</span> = <span class="var">pd</span>.<span class="fn">read_csv</span>(<span class="st">'USArrests.csv'</span>).<span class="fn">set_index</span>(<span class="st">'rownames'</span>)
+<br>
+<br><span class="cm"># Pipeline: estandarizacion + PCA</span>
+<br><span class="var">pca_pipe</span> = <span class="fn">make_pipeline</span>(<span class="fn">StandardScaler</span>(), <span class="fn">PCA</span>())
+<br><span class="var">pca_pipe</span>.<span class="fn">fit</span>(<span class="var">datos</span>)
+<br>
+<br><span class="cm"># Extraer el modelo PCA del pipeline</span>
+<br><span class="var">modelo_pca</span> = <span class="var">pca_pipe</span>.<span class="var">named_steps</span>[<span class="st">'pca'</span>]
+<br>
+<br><span class="cm"># Loadings (eigenvectores) — shape (n_components, n_features)</span>
+<br><span class="var">componentes</span> = <span class="var">pd</span>.<span class="fn">DataFrame</span>(
+<br>    <span class="var">data</span>=<span class="var">modelo_pca</span>.<span class="var">components_</span>,
+<br>    <span class="var">columns</span>=<span class="var">datos</span>.<span class="var">columns</span>,
+<br>    <span class="var">index</span>=[<span class="st">'PC1'</span>, <span class="st">'PC2'</span>, <span class="st">'PC3'</span>, <span class="st">'PC4'</span>]
+<br>)
+<br>
+<br><span class="cm"># Varianza explicada por componente</span>
+<br><span class="var">modelo_pca</span>.<span class="var">explained_variance_ratio_</span>
+<br><span class="output"># array([0.62006039, 0.24744129, 0.0891408 , 0.04335752])</span>
+<br>
+<br><span class="cm"># Varianza acumulada</span>
+<br><span class="var">modelo_pca</span>.<span class="var">explained_variance_ratio_</span>.<span class="fn">cumsum</span>()
+<br><span class="output"># array([0.62006039, 0.86750168, 0.95664248, 1.        ])</span>
+<br>
+<br><span class="cm"># Proyectar (obtener scores)</span>
+<br><span class="var">scores</span> = <span class="var">pca_pipe</span>.<span class="fn">transform</span>(<span class="var">datos</span>)
+<br><span class="var">scores_df</span> = <span class="var">pd</span>.<span class="fn">DataFrame</span>(<span class="var">scores</span>, <span class="var">index</span>=<span class="var">datos</span>.<span class="var">index</span>,
+<br>                          <span class="var">columns</span>=[<span class="st">'PC1'</span>,<span class="st">'PC2'</span>,<span class="st">'PC3'</span>,<span class="st">'PC4'</span>])
+    </div>
+
+    <h3>Verificar ortogonalidad</h3>
+
+    <div class="bloque-codigo">
+<span class="cm"># La correlacion entre componentes debe ser cero</span>
+<br><span class="var">scores_df</span>.<span class="fn">corr</span>().<span class="fn">round</span>(<span class="num">1</span>).<span class="fn">abs</span>()
+<br><span class="output">
+#      PC1  PC2  PC3  PC4
+# PC1  1.0  0.0  0.0  0.0
+# PC2  0.0  1.0  0.0  0.0
+# PC3  0.0  0.0  1.0  0.0
+# PC4  0.0  0.0  0.0  1.0</span>
+    </div>
+
+    <div class="caja-verde">
+      <strong>Usos principales de los scores transformados:</strong> visualizacion 2D/3D (PC1 vs PC2), entrada a modelos supervisados con menor numero de predictores, deteccion de outliers, y clustering en espacio reducido.
+    </div>
+
+    <h3>PCA como preprocesado para modelos supervisados</h3>
+
+    <div class="bloque-codigo">
+<span class="kw">from</span> <span class="var">sklearn.linear_model</span> <span class="kw">import</span> <span class="fn">LogisticRegression</span>
+<br><span class="kw">from</span> <span class="var">sklearn.pipeline</span> <span class="kw">import</span> <span class="fn">Pipeline</span>
+<br>
+<br><span class="cm"># Pipeline completo: escalar -> reducir -> clasificar</span>
+<br><span class="var">pipeline_ml</span> = <span class="fn">Pipeline</span>([
+<br>    (<span class="st">'scaler'</span>,  <span class="fn">StandardScaler</span>()),
+<br>    (<span class="st">'pca'</span>,     <span class="fn">PCA</span>(<span class="var">n_components</span>=<span class="num">0.95</span>)),  <span class="cm"># retener 95% de varianza</span>
+<br>    (<span class="st">'clf'</span>,     <span class="fn">LogisticRegression</span>())
+<br>])
+<br>
+<br><span class="var">pipeline_ml</span>.<span class="fn">fit</span>(<span class="var">X_train</span>, <span class="var">y_train</span>)
+<br><span class="var">pipeline_ml</span>.<span class="fn">score</span>(<span class="var">X_test</span>, <span class="var">y_test</span>)
+    </div>
+
+    <div class="caja-concepto">
+      <strong>Nota tecnica:</strong> <code>PCA(n_components=0.95)</code> selecciona automaticamente el numero minimo de componentes necesarios para explicar al menos el 95% de la varianza. Esta es una forma practica de automatizar la seleccion del numero optimo de componentes.
+    </div>
+  </section>
+
+</div><!-- /container -->
+
+<div class="tooltip-celda" id="tooltip-celda"></div>
+
+<script>
+(function() {
+
+  // ---- UTILIDADES ----
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return {r, g, b};
+  }
+
+  // ---- NAVEGACION ACTIVA ----
+  const sections = document.querySelectorAll('section, div.hero');
+  const navLinks = document.querySelectorAll('nav a');
+
+  function actualizarNav() {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 80) {
+        current = s.id;
+      }
+    });
+    navLinks.forEach(a => {
+      a.classList.remove('active');
+      if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+    });
+  }
+  window.addEventListener('scroll', actualizarNav, { passive: true });
+
+  navLinks.forEach(a => {
+    a.addEventListener('click', function(e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  // ---- CANVAS GEOMETRIA ----
+  const canvasG = document.getElementById('canvas-geom');
+  const ctxG = canvasG.getContext('2d');
+  let puntos = [];
+  let corrActual = 50;
+
+  function generarPuntos() {
+    corrActual = parseInt(document.getElementById('slider-corr').value);
+    document.getElementById('val-corr').textContent = corrActual + '%';
+    const n = 60;
+    const rho = corrActual / 100;
+    puntos = [];
+    for (let i = 0; i < n; i++) {
+      const u = (Math.random() - 0.5) * 2;
+      const v = (Math.random() - 0.5) * 2;
+      const x = u;
+      const y = rho * u + Math.sqrt(1 - rho * rho) * v;
+      puntos.push([x * 80 + 200, y * 80 + 200]);
+    }
+    dibujarGeom();
+  }
+  window.regenerarPuntos = generarPuntos;
+
+  function calcPCA2D(pts) {
+    const n = pts.length;
+    let mx = 0, my = 0;
+    pts.forEach(p => { mx += p[0]; my += p[1]; });
+    mx /= n; my /= n;
+    let cxx = 0, cxy = 0, cyy = 0;
+    pts.forEach(p => {
+      const dx = p[0] - mx, dy = p[1] - my;
+      cxx += dx * dx; cxy += dx * dy; cyy += dy * dy;
+    });
+    cxx /= n; cxy /= n; cyy /= n;
+    const tr = cxx + cyy;
+    const det = cxx * cyy - cxy * cxy;
+    const disc = Math.sqrt(Math.max(0, (tr/2)*(tr/2) - det));
+    const l1 = tr/2 + disc;
+    const l2 = tr/2 - disc;
+    let v1, v2;
+    if (Math.abs(cxy) > 1e-10) {
+      const nx1 = Math.sqrt(cxy*cxy + (l1-cxx)*(l1-cxx));
+      v1 = [cxy/nx1, (l1-cxx)/nx1];
+      const nx2 = Math.sqrt(cxy*cxy + (l2-cxx)*(l2-cxx));
+      v2 = [cxy/nx2, (l2-cxx)/nx2];
+    } else {
+      v1 = cxx >= cyy ? [1,0] : [0,1];
+      v2 = cxx >= cyy ? [0,1] : [1,0];
+    }
+    return { mx, my, v1, v2, l1, l2 };
+  }
+
+  function dibujarGeom() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvasG.parentElement.clientWidth - 48;
+    const h = 380;
+    canvasG.width = w * dpr;
+    canvasG.height = h * dpr;
+    canvasG.style.width = w + 'px';
+    canvasG.style.height = h + 'px';
+    ctxG.scale(dpr, dpr);
+    ctxG.clearRect(0, 0, w, h);
+
+    const cx = w / 2, cy = h / 2;
+    const escala = Math.min(w, h) / 500;
+
+    // fondo
+    ctxG.fillStyle = '#fafafa';
+    ctxG.fillRect(0, 0, w, h);
+
+    // ejes originales
+    ctxG.strokeStyle = '#ddd';
+    ctxG.lineWidth = 1;
+    ctxG.setLineDash([4, 4]);
+    ctxG.beginPath(); ctxG.moveTo(0, cy); ctxG.lineTo(w, cy); ctxG.stroke();
+    ctxG.beginPath(); ctxG.moveTo(cx, 0); ctxG.lineTo(cx, h); ctxG.stroke();
+    ctxG.setLineDash([]);
+
+    // etiquetas ejes
+    ctxG.fillStyle = '#aaa';
+    ctxG.font = '12px Spectral, serif';
+    ctxG.fillText('X_1', w - 20, cy - 8);
+    ctxG.fillText('X_2', cx + 6, 14);
+
+    // puntos
+    puntos.forEach(p => {
+      const px = p[0] * escala + cx - 200 * escala;
+      const py = -(p[1] * escala) + cy + 200 * escala;
+      ctxG.beginPath();
+      ctxG.arc(px, py, 4, 0, Math.PI * 2);
+      ctxG.fillStyle = 'rgba(45, 106, 79, 0.55)';
+      ctxG.fill();
+    });
+
+    // PCA
+    const pca = calcPCA2D(puntos);
+    const pcx = pca.mx * escala + cx - 200 * escala;
+    const pcy = -(pca.my * escala) + cy + 200 * escala;
+
+    const len1 = 90 * Math.sqrt(pca.l1 / 6400) * escala;
+    const len2 = 60 * Math.sqrt(Math.abs(pca.l2) / 6400) * escala;
+
+    function drawArrow(ctx, x0, y0, dx, dy, len, color, label) {
+      const ex = x0 + dx * len, ey = y0 - dy * len;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+      // cabeza
+      const ang = Math.atan2(ey - y0, ex - x0);
+      ctx.beginPath();
+      ctx.moveTo(ex, ey);
+      ctx.lineTo(ex - 10 * Math.cos(ang - 0.4), ey - 10 * Math.sin(ang - 0.4));
+      ctx.lineTo(ex - 10 * Math.cos(ang + 0.4), ey - 10 * Math.sin(ang + 0.4));
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.fillStyle = color;
+      ctx.font = 'bold 13px Zilla Slab, serif';
+      ctx.fillText(label, ex + 6, ey);
+    }
+
+    drawArrow(ctxG, pcx, pcy, pca.v1[0], pca.v1[1], len1, '#c0392b', 'PC1');
+    drawArrow(ctxG, pcx, pcy, pca.v2[0], pca.v2[1], Math.max(len2, 25), '#27ae60', 'PC2');
+  }
+
+  document.getElementById('slider-corr').addEventListener('input', function() {
+    document.getElementById('val-corr').textContent = this.value + '%';
+    corrActual = parseInt(this.value);
+    generarPuntos();
+  });
+
+  generarPuntos();
+
+  // ---- SCREE PLOT ----
+  const canvasS = document.getElementById('canvas-scree');
+  const ctxS = canvasS.getContext('2d');
+  const varianzas = [0.62006039, 0.24744129, 0.0891408, 0.04335752];
+  const acumuladas = varianzas.reduce((acc, v, i) => {
+    acc.push((acc[i-1] || 0) + v);
+    return acc;
+  }, []);
+
+  function dibujarScree(nRet) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvasS.parentElement.clientWidth - 48;
+    const h = 280;
+    canvasS.width = w * dpr;
+    canvasS.height = h * dpr;
+    canvasS.style.width = w + 'px';
+    canvasS.style.height = h + 'px';
+    ctxS.scale(dpr, dpr);
+    ctxS.clearRect(0, 0, w, h);
+
+    const pad = { t: 20, r: 40, b: 50, l: 55 };
+    const gw = w - pad.l - pad.r;
+    const gh = h - pad.t - pad.b;
+    const n = 4;
+    const bw = gw / (n + 1);
+
+    ctxS.fillStyle = '#fafafa';
+    ctxS.fillRect(0, 0, w, h);
+
+    // ejes
+    ctxS.strokeStyle = '#ccc';
+    ctxS.lineWidth = 1;
+    ctxS.beginPath();
+    ctxS.moveTo(pad.l, pad.t);
+    ctxS.lineTo(pad.l, pad.t + gh);
+    ctxS.lineTo(pad.l + gw, pad.t + gh);
+    ctxS.stroke();
+
+    // etiquetas Y
+    ctxS.fillStyle = '#888';
+    ctxS.font = '11px Spectral, serif';
+    ctxS.textAlign = 'right';
+    [0, 0.25, 0.5, 0.75, 1.0].forEach(v => {
+      const y = pad.t + gh - v * gh;
+      ctxS.fillText((v * 100).toFixed(0) + '%', pad.l - 6, y + 4);
+      ctxS.strokeStyle = '#eee';
+      ctxS.lineWidth = 0.5;
+      ctxS.beginPath();
+      ctxS.moveTo(pad.l, y);
+      ctxS.lineTo(pad.l + gw, y);
+      ctxS.stroke();
+    });
+
+    // barras
+    varianzas.forEach((v, i) => {
+      const x = pad.l + (i + 0.5) * bw + bw * 0.1;
+      const bh = v * gh;
+      const y = pad.t + gh - bh;
+      const retenido = (i + 1) <= nRet;
+      ctxS.fillStyle = retenido ? '#2d6a4f' : '#cce0d8';
+      ctxS.fillRect(x, y, bw * 0.8, bh);
+      ctxS.fillStyle = retenido ? '#fff' : '#666';
+      ctxS.font = 'bold 12px Zilla Slab, serif';
+      ctxS.textAlign = 'center';
+      ctxS.fillText((v * 100).toFixed(1) + '%', x + bw * 0.4, y - 6);
+
+      // etiqueta x
+      ctxS.fillStyle = '#666';
+      ctxS.font = '12px Zilla Slab, serif';
+      ctxS.fillText('PC' + (i + 1), x + bw * 0.4, pad.t + gh + 18);
+    });
+
+    // linea acumulada
+    ctxS.strokeStyle = '#5a189a';
+    ctxS.lineWidth = 2;
+    ctxS.setLineDash([]);
+    ctxS.beginPath();
+    acumuladas.forEach((v, i) => {
+      const x = pad.l + (i + 0.5) * bw + bw / 2;
+      const y = pad.t + gh - v * gh;
+      if (i === 0) ctxS.moveTo(x, y);
+      else ctxS.lineTo(x, y);
+    });
+    ctxS.stroke();
+
+    // puntos en linea
+    acumuladas.forEach((v, i) => {
+      const x = pad.l + (i + 0.5) * bw + bw / 2;
+      const y = pad.t + gh - v * gh;
+      ctxS.beginPath();
+      ctxS.arc(x, y, 5, 0, Math.PI * 2);
+      ctxS.fillStyle = '#5a189a';
+      ctxS.fill();
+      ctxS.fillStyle = '#5a189a';
+      ctxS.font = 'bold 11px Spectral, serif';
+      ctxS.textAlign = 'center';
+      ctxS.fillText((v * 100).toFixed(1) + '%', x, y - 10);
+    });
+
+    // leyenda
+    ctxS.textAlign = 'left';
+    ctxS.fillStyle = '#2d6a4f';
+    ctxS.fillRect(pad.l, h - 18, 14, 12);
+    ctxS.fillStyle = '#555';
+    ctxS.font = '11px Spectral, serif';
+    ctxS.fillText('Varianza individual', pad.l + 18, h - 8);
+    ctxS.strokeStyle = '#5a189a';
+    ctxS.lineWidth = 2;
+    ctxS.beginPath();
+    ctxS.moveTo(pad.l + 160, h - 12);
+    ctxS.lineTo(pad.l + 174, h - 12);
+    ctxS.stroke();
+    ctxS.beginPath();
+    ctxS.arc(pad.l + 167, h - 12, 4, 0, Math.PI * 2);
+    ctxS.fillStyle = '#5a189a';
+    ctxS.fill();
+    ctxS.fillStyle = '#555';
+    ctxS.fillText('Varianza acumulada', pad.l + 178, h - 8);
+  }
+
+  const sliderComp = document.getElementById('slider-comp');
+  sliderComp.addEventListener('input', function() {
+    const n = parseInt(this.value);
+    document.getElementById('val-comp').textContent = n + ' componente' + (n > 1 ? 's' : '');
+    const varAcum = acumuladas[n - 1];
+    document.getElementById('val-var').textContent = '— Varianza acumulada: ' + (varAcum * 100).toFixed(1) + '%';
+    dibujarScree(n);
+  });
+  sliderComp.dispatchEvent(new Event('input'));
+
+  // ---- CANVAS TRANSFORM ----
+  const canvasT = document.getElementById('canvas-transform');
+  const ctxT = canvasT.getContext('2d');
+
+  const datosEj = [[-1.9293, 0.0319], [-0.5123, -0.1201], [0.5123, 0.1201], [1.9293, -0.0319]];
+  const datosOrig = [[-1.3416, 1.3868], [-0.4472, 0.2774], [0.4472, -0.2774], [1.3416, -1.3868]];
+  const colores = ['#2d6a4f', '#5a189a', '#b08968', '#c0392b'];
+
+  let animT = 0;
+  let animando = false;
+  let animRaf = null;
+
+  function dibujarTransform(t) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvasT.parentElement.clientWidth - 48;
+    const h = 320;
+    canvasT.width = w * dpr;
+    canvasT.height = h * dpr;
+    canvasT.style.width = w + 'px';
+    canvasT.style.height = h + 'px';
+    ctxT.scale(dpr, dpr);
+    ctxT.clearRect(0, 0, w, h);
+
+    ctxT.fillStyle = '#fafafa';
+    ctxT.fillRect(0, 0, w, h);
+
+    const panelW = w / 2 - 10;
+    const panelH = h;
+    const escala = panelH / 4;
+
+    function drawPanel(offsetX, puntosSrc, puntosDst, titulo, etX, etY) {
+      const cx = offsetX + panelW / 2;
+      const cy = panelH / 2;
+
+      // borde
+      ctxT.strokeStyle = '#ddd';
+      ctxT.lineWidth = 1;
+      ctxT.strokeRect(offsetX + 4, 4, panelW - 8, panelH - 8);
+
+      // titulo
+      ctxT.fillStyle = '#444';
+      ctxT.font = 'bold 12px Zilla Slab, serif';
+      ctxT.textAlign = 'center';
+      ctxT.fillText(titulo, offsetX + panelW / 2, 20);
+
+      // ejes
+      ctxT.strokeStyle = '#ddd';
+      ctxT.setLineDash([3,3]);
+      ctxT.beginPath(); ctxT.moveTo(offsetX + 4, cy); ctxT.lineTo(offsetX + panelW - 4, cy); ctxT.stroke();
+      ctxT.beginPath(); ctxT.moveTo(cx, 4); ctxT.lineTo(cx, panelH - 4); ctxT.stroke();
+      ctxT.setLineDash([]);
+      ctxT.fillStyle = '#bbb';
+      ctxT.font = '10px Spectral, serif';
+      ctxT.textAlign = 'right';
+      ctxT.fillText(etX, offsetX + panelW - 6, cy - 4);
+      ctxT.textAlign = 'left';
+      ctxT.fillText(etY, cx + 4, 14);
+
+      // interpolar puntos
+      for (let i = 0; i < 4; i++) {
+        const xi = lerp(puntosSrc[i][0], puntosDst[i][0], t);
+        const yi = lerp(puntosSrc[i][1], puntosDst[i][1], t);
+        const px = cx + xi * escala;
+        const py = cy - yi * escala;
+        ctxT.beginPath();
+        ctxT.arc(px, py, 7, 0, Math.PI * 2);
+        ctxT.fillStyle = colores[i];
+        ctxT.fill();
+        ctxT.strokeStyle = 'white';
+        ctxT.lineWidth = 1.5;
+        ctxT.stroke();
+        ctxT.fillStyle = colores[i];
+        ctxT.font = 'bold 10px Zilla Slab, serif';
+        ctxT.textAlign = 'center';
+        ctxT.fillText('P' + (i+1), px, py - 11);
+      }
+    }
+
+    drawPanel(0, datosOrig, datosEj, 'Espacio original (X1, X2)', 'X1', 'X2');
+    drawPanel(w / 2 + 5, datosEj, datosOrig, 'Espacio PCA (PC1, PC2)', 'PC1', 'PC2');
+
+    // flecha central
+    ctxT.fillStyle = '#aaa';
+    ctxT.font = '18px Zilla Slab, serif';
+    ctxT.textAlign = 'center';
+    ctxT.fillText('>', w / 2, h / 2 + 6);
+  }
+
+  const sliderAnim = document.getElementById('slider-anim');
+  sliderAnim.addEventListener('input', function() {
+    const t = parseInt(this.value) / 100;
+    document.getElementById('val-anim').textContent = t < 0.5 ? 'Espacio original' : 'Espacio PCA';
+    dibujarTransform(t);
+  });
+
+  window.animarTransform = function() {
+    if (animando) return;
+    animando = true;
+    let start = null;
+    function step(ts) {
+      if (!start) start = ts;
+      const elapsed = ts - start;
+      const duracion = 1800;
+      const t = Math.min(elapsed / duracion, 1);
+      const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      sliderAnim.value = Math.round(ease * 100);
+      document.getElementById('val-anim').textContent = ease < 0.5 ? 'Transformando...' : 'Espacio PCA';
+      dibujarTransform(ease);
+      if (t < 1) {
+        animRaf = requestAnimationFrame(step);
+      } else {
+        animando = false;
+        document.getElementById('val-anim').textContent = 'Espacio PCA';
+      }
+    }
+    requestAnimationFrame(step);
+  };
+
+  dibujarTransform(0);
+
+  // ---- HEATMAP LOADINGS ----
+  const canvasH = document.getElementById('canvas-heatmap');
+  const ctxH = canvasH.getContext('2d');
+  const loadingsData = [
+    [0.535899, 0.583184, 0.278191, 0.543432],
+    [-0.418181, -0.187986, 0.872806, 0.167319],
+    [-0.341233, -0.268148, -0.378016, 0.817778],
+    [-0.649228, 0.743407, -0.133878, -0.089024]
+  ];
+  const variables = ['Murder', 'Assault', 'UrbanPop', 'Rape'];
+  let modoAbsoluto = false;
+
+  window.toggleAbsoluto = function() {
+    modoAbsoluto = !modoAbsoluto;
+    document.getElementById('modo-heatmap').textContent =
+      modoAbsoluto ? 'Mostrando valores absolutos' : 'Mostrando valores reales';
+    dibujarHeatmap();
+  };
+
+  function colorHeatmap(v) {
+    if (modoAbsoluto) {
+      const t = Math.abs(v);
+      const r = Math.round(lerp(240, 45, t));
+      const g = Math.round(lerp(240, 106, t));
+      const b = Math.round(lerp(240, 79, t));
+      return `rgb(${r},${g},${b})`;
+    }
+    if (v > 0) {
+      const t = v;
+      const r = Math.round(lerp(255, 45, t));
+      const g = Math.round(lerp(255, 106, t));
+      const b = Math.round(lerp(255, 79, t));
+      return `rgb(${r},${g},${b})`;
+    } else {
+      const t = -v;
+      const r = Math.round(lerp(255, 90, t));
+      const g = Math.round(lerp(255, 24, t));
+      const b = Math.round(lerp(255, 154, t));
+      return `rgb(${r},${g},${b})`;
+    }
+  }
+
+  function dibujarHeatmap() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvasH.parentElement.clientWidth - 48;
+    const h = 220;
+    canvasH.width = w * dpr;
+    canvasH.height = h * dpr;
+    canvasH.style.width = w + 'px';
+    canvasH.style.height = h + 'px';
+    ctxH.scale(dpr, dpr);
+    ctxH.clearRect(0, 0, w, h);
+
+    ctxH.fillStyle = '#fafafa';
+    ctxH.fillRect(0, 0, w, h);
+
+    const padL = 65, padT = 35, padR = 20, padB = 30;
+    const gw = w - padL - padR;
+    const gh = h - padT - padB;
+    const rows = 4, cols = 4;
+    const cw = gw / cols, ch = gh / rows;
+
+    // headers columnas
+    ctxH.fillStyle = '#555';
+    ctxH.font = 'bold 12px Zilla Slab, serif';
+    ctxH.textAlign = 'center';
+    for (let c = 0; c < cols; c++) {
+      ctxH.fillText('PC' + (c+1), padL + (c + 0.5) * cw, padT - 10);
+    }
+
+    // etiquetas filas
+    ctxH.textAlign = 'right';
+    ctxH.font = '12px Spectral, serif';
+    for (let r = 0; r < rows; r++) {
+      ctxH.fillText(variables[r], padL - 6, padT + (r + 0.5) * ch + 4);
+    }
+
+    // celdas
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const v = loadingsData[c][r];
+        const x = padL + c * cw;
+        const y = padT + r * ch;
+        ctxH.fillStyle = colorHeatmap(v);
+        ctxH.fillRect(x + 1, y + 1, cw - 2, ch - 2);
+        const lum = Math.abs(v) > 0.4 ? 255 : 60;
+        ctxH.fillStyle = `rgb(${lum},${lum},${lum})`;
+        ctxH.font = 'bold 11px Courier New, monospace';
+        ctxH.textAlign = 'center';
+        ctxH.fillText(v.toFixed(2), x + cw / 2, y + ch / 2 + 4);
+      }
+    }
+
+    // leyenda
+    const leyX = padL, leyY = h - padB + 8;
+    ctxH.font = '10px Spectral, serif';
+    ctxH.fillStyle = '#888';
+    ctxH.textAlign = 'left';
+    if (!modoAbsoluto) {
+      ctxH.fillStyle = colorHeatmap(-0.9);
+      ctxH.fillRect(leyX, leyY, 12, 12);
+      ctxH.fillStyle = '#666';
+      ctxH.fillText('Negativo fuerte', leyX + 16, leyY + 9);
+      ctxH.fillStyle = colorHeatmap(0.9);
+      ctxH.fillRect(leyX + 130, leyY, 12, 12);
+      ctxH.fillStyle = '#666';
+      ctxH.fillText('Positivo fuerte', leyX + 146, leyY + 9);
+    } else {
+      ctxH.fillStyle = colorHeatmap(0.1);
+      ctxH.fillRect(leyX, leyY, 12, 12);
+      ctxH.fillStyle = '#666';
+      ctxH.fillText('Influencia baja', leyX + 16, leyY + 9);
+      ctxH.fillStyle = colorHeatmap(0.9);
+      ctxH.fillRect(leyX + 130, leyY, 12, 12);
+      ctxH.fillStyle = '#666';
+      ctxH.fillText('Influencia alta', leyX + 146, leyY + 9);
+    }
+  }
+
+  dibujarHeatmap();
+
+  // ---- BARRAS LOADINGS POR PC ----
+  const loadingsPorPC = {
+    1: [{n:'Murder', v:0.535899},{n:'Assault', v:0.583184},{n:'UrbanPop', v:0.278191},{n:'Rape', v:0.543432}],
+    2: [{n:'Murder', v:-0.418181},{n:'Assault', v:-0.187986},{n:'UrbanPop', v:0.872806},{n:'Rape', v:0.167319}],
+    3: [{n:'Murder', v:-0.341233},{n:'Assault', v:-0.268148},{n:'UrbanPop', v:-0.378016},{n:'Rape', v:0.817778}],
+    4: [{n:'Murder', v:-0.649228},{n:'Assault', v:0.743407},{n:'UrbanPop', v:-0.133878},{n:'Rape', v:-0.089024}]
+  };
+
+  window.mostrarPC = function(n) {
+    [1,2,3,4].forEach(i => {
+      const btn = document.getElementById('btn-pc'+i);
+      if (i === n) {
+        btn.style.background = 'var(--verde)';
+        btn.style.color = 'white';
+        btn.style.border = 'none';
+      } else {
+        btn.style.background = 'var(--gris-claro)';
+        btn.style.color = 'var(--gris-medio)';
+        btn.style.border = '1px solid var(--borde)';
+      }
+    });
+
+    const datos = loadingsPorPC[n];
+    const cont = document.getElementById('barras-container');
+    cont.innerHTML = '';
+    datos.forEach(d => {
+      const pct = Math.abs(d.v) * 100;
+      const color = d.v >= 0 ? '#2d6a4f' : '#5a189a';
+      cont.innerHTML += `
+        <div class="barra-loading">
+          <span class="nombre">${d.n}</span>
+          <div class="barra-track">
+            <div class="barra-fill" style="width:${pct}%;background:${color};">${d.v.toFixed(3)}</div>
+          </div>
+          <span style="font-family:var(--font-mono);font-size:0.8rem;color:${d.v>=0?'#2d6a4f':'#5a189a'};width:40px;">${d.v>=0?'+':''}${d.v.toFixed(3)}</span>
+        </div>`;
+    });
+  };
+
+  mostrarPC(1);
+
+  // ---- MATRIZ DE CORRELACION INTERACTIVA ----
+  const tooltip = document.getElementById('tooltip-celda');
+  const pcs = ['PC1', 'PC2', 'PC3', 'PC4'];
+  let modoMatriz = 'ambos'; // 'ambos' | 'solo-color'
+
+  const interpretaciones = {
+    'diag': [
+      'PC1 vs PC1 = 1.0: Un componente siempre se correlaciona perfectamente consigo mismo.',
+      'PC2 vs PC2 = 1.0: Un componente siempre se correlaciona perfectamente consigo mismo.',
+      'PC3 vs PC3 = 1.0: Un componente siempre se correlaciona perfectamente consigo mismo.',
+      'PC4 vs PC4 = 1.0: Un componente siempre se correlaciona perfectamente consigo mismo.'
+    ],
+    'fuera': 'Correlacion = 0.0: Estos dos componentes son completamente independientes entre si. Saber el valor de uno no aporta ninguna informacion sobre el otro. Esto confirma la ortogonalidad del PCA.'
+  };
+
+  function construirMatriz() {
+    const cont = document.getElementById('matriz-corr-container');
+    let html = '<table class="matriz-corr"><thead><tr><th class="row-header"></th>';
+    pcs.forEach(pc => { html += `<th>${pc}</th>`; });
+    html += '</tr></thead><tbody>';
+    pcs.forEach((pcFila, i) => {
+      html += `<tr><th class="row-header">${pcFila}</th>`;
+      pcs.forEach((pcCol, j) => {
+        const esD = i === j;
+        const val = esD ? '1.0' : '0.0';
+        const cls = esD ? 'diagonal' : 'fuera-diagonal';
+        const dataI = i, dataJ = j;
+        html += `<td class="${cls}" data-i="${dataI}" data-j="${dataJ}">${val}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    cont.innerHTML = html;
+
+    // eventos tooltip
+    cont.querySelectorAll('td').forEach(td => {
+      td.addEventListener('mouseenter', function(e) {
+        const i = parseInt(this.dataset.i);
+        const j = parseInt(this.dataset.j);
+        let txt;
+        if (i === j) {
+          txt = interpretaciones.diag[i];
+        } else {
+          txt = `${pcs[i]} vs ${pcs[j]}: ` + interpretaciones.fuera;
+        }
+        tooltip.textContent = txt;
+        tooltip.style.display = 'block';
+        posicionarTooltip(e);
+      });
+      td.addEventListener('mousemove', posicionarTooltip);
+      td.addEventListener('mouseleave', function() {
+        tooltip.style.display = 'none';
+      });
+      td.addEventListener('click', function() {
+        // resaltar fila/columna
+        cont.querySelectorAll('td.fuera-diagonal').forEach(c => c.classList.remove('resaltado'));
+        const i = parseInt(this.dataset.i);
+        const j = parseInt(this.dataset.j);
+        if (i !== j) {
+          cont.querySelectorAll(`td[data-i="${i}"], td[data-j="${i}"], td[data-i="${j}"], td[data-j="${j}"]`)
+            .forEach(c => { if (c.dataset.i !== c.dataset.j + '' || parseInt(c.dataset.i) !== parseInt(c.dataset.j)) c.classList.add('resaltado'); });
+        }
+      });
+    });
+  }
+
+  function posicionarTooltip(e) {
+    const x = e.clientX + 14, y = e.clientY - 10;
+    tooltip.style.left = Math.min(x, window.innerWidth - 240) + 'px';
+    tooltip.style.top = y + 'px';
+  }
+
+  window.toggleMatrizCorr = function() {
+    const tds = document.querySelectorAll('.matriz-corr td');
+    modoMatriz = modoMatriz === 'ambos' ? 'solo-color' : 'ambos';
+    tds.forEach(td => {
+      const esD = td.classList.contains('diagonal');
+      if (modoMatriz === 'solo-color') {
+        td.textContent = '';
+        td.style.opacity = '0.85';
+      } else {
+        td.textContent = esD ? '1.0' : '0.0';
+        td.style.opacity = '1';
+      }
+    });
+    document.getElementById('modo-matriz').textContent =
+      modoMatriz === 'ambos' ? 'Modo: numeros + color' : 'Modo: solo color';
+  };
+
+  construirMatriz();
+
+  // ---- CANVAS ORTOGONALIDAD ----
+  const canvasOrto = document.getElementById('canvas-orto');
+  const ctxOrto = canvasOrto.getContext('2d');
+  let anguloOrto = 30;
+
+  // Loadings PC1 y PC2 de USArrests (primeras 2 vars para visualizar en 2D)
+  // Usamos una representacion 2D simplificada con los scores reales proyectados
+  const scoresPC = [
+    [-0.976, 1.122], [-1.931, 1.063], [-1.745, -0.738], [-0.140, 1.175],
+    [-2.499, -1.529], [-1.499, -0.978], [-1.384, -1.088], [0.048, 0.322],
+    [-2.959, 0.039], [-1.624, -0.216], [1.483, 1.633], [-1.179, -0.531],
+    [-2.220, -1.426], [-0.994, 0.862], [-0.572, 2.474], [-0.293, 2.079],
+    [-0.629, -0.619], [1.149, 0.305], [1.487, 0.422], [-0.619, 1.494],
+    [-0.894, -0.861], [-0.555, -0.476], [0.083, 2.328], [0.851, -0.571],
+    [0.695, -0.527], [-0.576, 0.428], [-0.105, -0.534], [-2.080, -1.433],
+    [0.679, -1.426], [-0.244, -0.440], [-0.197, -1.614], [-1.583, -0.147],
+    [1.328, -0.551], [0.943, 2.325], [0.031, 0.065], [0.079, -0.551],
+    [-0.547, -0.534], [0.576, -0.346], [2.047, -0.434], [0.401, 0.840],
+    [-0.043, -1.005], [1.043, -0.476], [1.264, -1.369], [2.096, -0.386],
+    [0.146, 1.491], [1.490, -1.399], [0.294, -1.312], [1.576, -0.053],
+    [1.082, 2.078], [0.633, -0.279]
+  ];
+
+  function dibujarOrto() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvasOrto.parentElement.clientWidth - 48;
+    const h = 340;
+    canvasOrto.width = w * dpr;
+    canvasOrto.height = h * dpr;
+    canvasOrto.style.width = w + 'px';
+    canvasOrto.style.height = h + 'px';
+    ctxOrto.scale(dpr, dpr);
+    ctxOrto.clearRect(0, 0, w, h);
+
+    ctxOrto.fillStyle = '#fafafa';
+    ctxOrto.fillRect(0, 0, w, h);
+
+    const cx = w / 2, cy = h / 2;
+    const escala = Math.min(w, h) / 7;
+    const rad = anguloOrto * Math.PI / 180;
+
+    // Ejes referencia
+    ctxOrto.strokeStyle = '#e0e0e0';
+    ctxOrto.lineWidth = 1;
+    ctxOrto.setLineDash([4, 4]);
+    ctxOrto.beginPath(); ctxOrto.moveTo(0, cy); ctxOrto.lineTo(w, cy); ctxOrto.stroke();
+    ctxOrto.beginPath(); ctxOrto.moveTo(cx, 0); ctxOrto.lineTo(cx, h); ctxOrto.stroke();
+    ctxOrto.setLineDash([]);
+
+    // Puntos (scores)
+    scoresPC.forEach(p => {
+      // Rotar scores segun angulo
+      const px = cx + (p[0] * Math.cos(rad) - p[1] * Math.sin(rad)) * escala;
+      const py = cy - (p[0] * Math.sin(rad) + p[1] * Math.cos(rad)) * escala;
+      ctxOrto.beginPath();
+      ctxOrto.arc(px, py, 4, 0, Math.PI * 2);
+      ctxOrto.fillStyle = 'rgba(45, 106, 79, 0.4)';
+      ctxOrto.fill();
+    });
+
+    // Flecha PC1
+    const len = Math.min(w, h) * 0.38;
+    function flecha(dx, dy, color, label) {
+      const ex = cx + dx * len, ey = cy - dy * len;
+      ctxOrto.strokeStyle = color;
+      ctxOrto.lineWidth = 3;
+      ctxOrto.beginPath();
+      ctxOrto.moveTo(cx - dx * len * 0.15, cy + dy * len * 0.15);
+      ctxOrto.lineTo(ex, ey);
+      ctxOrto.stroke();
+      const ang = Math.atan2(ey - cy, ex - cx);
+      ctxOrto.beginPath();
+      ctxOrto.moveTo(ex, ey);
+      ctxOrto.lineTo(ex - 12 * Math.cos(ang - 0.35), ey - 12 * Math.sin(ang - 0.35));
+      ctxOrto.lineTo(ex - 12 * Math.cos(ang + 0.35), ey - 12 * Math.sin(ang + 0.35));
+      ctxOrto.closePath();
+      ctxOrto.fillStyle = color;
+      ctxOrto.fill();
+      ctxOrto.font = 'bold 14px Zilla Slab, serif';
+      ctxOrto.fillStyle = color;
+      ctxOrto.textAlign = 'center';
+      ctxOrto.fillText(label, ex + 18 * Math.cos(ang), ey + 18 * Math.sin(ang) - 6);
+    }
+
+    flecha(Math.cos(rad), Math.sin(rad), '#2d6a4f', 'PC1');
+    flecha(-Math.sin(rad), Math.cos(rad), '#5a189a', 'PC2');
+
+    // Angulo recto entre PC1 y PC2
+    const sz = 18;
+    const c1x = Math.cos(rad) * sz, c1y = -Math.sin(rad) * sz;
+    const c2x = -Math.sin(rad) * sz, c2y = -Math.cos(rad) * sz;
+    ctxOrto.strokeStyle = '#b08968';
+    ctxOrto.lineWidth = 1.5;
+    ctxOrto.beginPath();
+    ctxOrto.moveTo(cx + c1x, cy + c1y);
+    ctxOrto.lineTo(cx + c1x + c2x, cy + c1y + c2y);
+    ctxOrto.lineTo(cx + c2x, cy + c2y);
+    ctxOrto.stroke();
+
+    // Etiqueta angulo
+    ctxOrto.fillStyle = '#b08968';
+    ctxOrto.font = 'bold 12px Zilla Slab, serif';
+    ctxOrto.textAlign = 'center';
+    ctxOrto.fillText('90°', cx + (c1x + c2x) * 0.85, cy + (c1y + c2y) * 0.85);
+
+    // Info correlacion
+    ctxOrto.fillStyle = '#555';
+    ctxOrto.font = '12px Spectral, serif';
+    ctxOrto.textAlign = 'left';
+    ctxOrto.fillText('Corr(PC1, PC2) = 0.0', 12, h - 12);
+    ctxOrto.fillText('Angulo entre componentes: 90°', 12, h - 28);
+  }
+
+  const sliderOrto = document.getElementById('slider-orto');
+  sliderOrto.addEventListener('input', function() {
+    anguloOrto = parseInt(this.value);
+    document.getElementById('val-orto').textContent = anguloOrto + ' deg';
+    dibujarOrto();
+  });
+
+  window.resetOrto = function() {
+    anguloOrto = 30;
+    sliderOrto.value = 30;
+    document.getElementById('val-orto').textContent = '30 deg';
+    dibujarOrto();
+  };
+
+  dibujarOrto();
+
+  dibujarOrto();
+
+  // ---- SCATTER 50 ESTADOS ----
+  const canvasScatter = document.getElementById('canvas-scatter');
+  const ctxSc = canvasScatter.getContext('2d');
+
+  const estadosDatos = [
+    {n:'Alabama',pc1:0.986,pc2:-1.133,r:'South'},
+    {n:'Alaska',pc1:1.950,pc2:-1.073,r:'West'},
+    {n:'Arizona',pc1:1.763,pc2:0.746,r:'West'},
+    {n:'Arkansas',pc1:-0.141,pc2:-1.120,r:'South'},
+    {n:'California',pc1:2.524,pc2:1.543,r:'West'},
+    {n:'Colorado',pc1:1.514,pc2:1.079,r:'West'},
+    {n:'Connecticut',pc1:-1.356,pc2:1.378,r:'Northeast'},
+    {n:'Delaware',pc1:-0.048,pc2:0.322,r:'South'},
+    {n:'Florida',pc1:3.013,pc2:-0.039,r:'South'},
+    {n:'Georgia',pc1:1.639,pc2:-1.394,r:'South'},
+    {n:'Hawaii',pc1:-0.912,pc2:1.573,r:'West'},
+    {n:'Idaho',pc1:-1.629,pc2:0.213,r:'West'},
+    {n:'Illinois',pc1:1.374,pc2:0.681,r:'Midwest'},
+    {n:'Indiana',pc1:-0.509,pc2:0.158,r:'Midwest'},
+    {n:'Iowa',pc1:-2.249,pc2:-0.103,r:'Midwest'},
+    {n:'Kansas',pc1:-0.791,pc2:0.274,r:'Midwest'},
+    {n:'Kentucky',pc1:-0.564,pc2:-1.467,r:'South'},
+    {n:'Louisiana',pc1:1.868,pc2:-1.559,r:'South'},
+    {n:'Maine',pc1:-2.098,pc2:0.035,r:'Northeast'},
+    {n:'Maryland',pc1:1.674,pc2:0.428,r:'South'},
+    {n:'Massachusetts',pc1:-0.489,pc2:1.468,r:'Northeast'},
+    {n:'Michigan',pc1:2.098,pc2:0.776,r:'Midwest'},
+    {n:'Minnesota',pc1:-1.698,pc2:0.927,r:'Midwest'},
+    {n:'Mississippi',pc1:0.994,pc2:-2.393,r:'South'},
+    {n:'Missouri',pc1:0.696,pc2:0.264,r:'Midwest'},
+    {n:'Montana',pc1:-1.183,pc2:0.532,r:'West'},
+    {n:'Nebraska',pc1:-1.262,pc2:0.240,r:'Midwest'},
+    {n:'Nevada',pc1:2.873,pc2:0.773,r:'West'},
+    {n:'New Hampshire',pc1:-2.388,pc2:0.015,r:'Northeast'},
+    {n:'New Jersey',pc1:0.182,pc2:1.449,r:'Northeast'},
+    {n:'New Mexico',pc1:1.977,pc2:-0.143,r:'West'},
+    {n:'New York',pc1:1.690,pc2:0.820,r:'Northeast'},
+    {n:'North Carolina',pc1:1.123,pc2:-1.992,r:'South'},
+    {n:'North Dakota',pc1:-2.993,pc2:0.390,r:'Midwest'},
+    {n:'Ohio',pc1:0.222,pc2:0.748,r:'Midwest'},
+    {n:'Oklahoma',pc1:-0.311,pc2:-0.286,r:'South'},
+    {n:'Oregon',pc1:0.054,pc2:0.637,r:'West'},
+    {n:'Pennsylvania',pc1:-0.884,pc2:0.723,r:'Northeast'},
+    {n:'Rhode Island',pc1:-0.856,pc2:1.545,r:'Northeast'},
+    {n:'South Carolina',pc1:1.986,pc2:-1.404,r:'South'},
+    {n:'South Dakota',pc1:-1.636,pc2:-0.362,r:'Midwest'},
+    {n:'Tennessee',pc1:0.994,pc2:-1.090,r:'South'},
+    {n:'Texas',pc1:1.382,pc2:-0.187,r:'South'},
+    {n:'Utah',pc1:-0.551,pc2:0.833,r:'West'},
+    {n:'Vermont',pc1:-2.801,pc2:1.434,r:'Northeast'},
+    {n:'Virginia',pc1:-0.097,pc2:-0.278,r:'South'},
+    {n:'Washington',pc1:-0.216,pc2:0.963,r:'West'},
+    {n:'West Virginia',pc1:-2.102,pc2:-1.423,r:'South'},
+    {n:'Wisconsin',pc1:-2.079,pc2:0.953,r:'Midwest'},
+    {n:'Wyoming',pc1:-0.629,pc2:-0.599,r:'West'}
+  ];
+
+  const coloresRegion = {South:'#e05a00', West:'#1a6ef5', Midwest:'#c0392b', Northeast:'#7b2fbe'};
+  let estadoHover = null;
+
+  function dibujarScatter() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvasScatter.parentElement.clientWidth - 48;
+    const h = 480;
+    canvasScatter.width = w * dpr;
+    canvasScatter.height = h * dpr;
+    canvasScatter.style.width = w + 'px';
+    canvasScatter.style.height = h + 'px';
+    ctxSc.scale(dpr, dpr);
+    ctxSc.clearRect(0, 0, w, h);
+    ctxSc.fillStyle = 'white';
+    ctxSc.fillRect(0, 0, w, h);
+
+    const pad = {t:40, r:20, b:50, l:60};
+    const gw = w - pad.l - pad.r, gh = h - pad.t - pad.b;
+    const xMin = -3.5, xMax = 3.5, yMin = -2.8, yMax = 2.2;
+    function toX(v) { return pad.l + (v - xMin) / (xMax - xMin) * gw; }
+    function toY(v) { return pad.t + (yMax - v) / (yMax - yMin) * gh; }
+
+    // Cuadriculas
+    ctxSc.strokeStyle = '#f0f0f0'; ctxSc.lineWidth = 1;
+    [-3,-2,-1,0,1,2,3].forEach(v => {
+      ctxSc.beginPath(); ctxSc.moveTo(toX(v), pad.t); ctxSc.lineTo(toX(v), pad.t+gh); ctxSc.stroke();
+    });
+    [-2,-1,0,1,2].forEach(v => {
+      ctxSc.beginPath(); ctxSc.moveTo(pad.l, toY(v)); ctxSc.lineTo(pad.l+gw, toY(v)); ctxSc.stroke();
+    });
+
+    // Ejes en cero punteados
+    ctxSc.strokeStyle = '#ccc'; ctxSc.lineWidth = 1; ctxSc.setLineDash([5,5]);
+    ctxSc.beginPath(); ctxSc.moveTo(toX(0), pad.t); ctxSc.lineTo(toX(0), pad.t+gh); ctxSc.stroke();
+    ctxSc.beginPath(); ctxSc.moveTo(pad.l, toY(0)); ctxSc.lineTo(pad.l+gw, toY(0)); ctxSc.stroke();
+    ctxSc.setLineDash([]);
+
+    // Marco
+    ctxSc.strokeStyle = '#ddd'; ctxSc.lineWidth = 1;
+    ctxSc.strokeRect(pad.l, pad.t, gw, gh);
+
+    // Etiquetas cuadrantes
+    ctxSc.font = '10px Spectral, serif'; ctxSc.fillStyle = '#ccc'; ctxSc.textAlign = 'center';
+    ctxSc.fillText('Alta criminalidad + Alta urbanizacion', toX(2.2), toY(1.6));
+    ctxSc.fillText('Alta criminalidad + Baja urbanizacion', toX(2.2), toY(-2.3));
+    ctxSc.fillText('Baja criminalidad + Alta urbanizacion', toX(-2.2), toY(1.6));
+    ctxSc.fillText('Baja criminalidad + Baja urbanizacion', toX(-2.2), toY(-2.3));
+
+    // Etiquetas ejes
+    ctxSc.fillStyle = '#555'; ctxSc.font = '12px Zilla Slab, serif'; ctxSc.textAlign = 'center';
+    ctxSc.fillText('PC1 — Criminalidad general (62.0%)', pad.l + gw/2, h - 8);
+    ctxSc.save(); ctxSc.translate(14, pad.t + gh/2); ctxSc.rotate(-Math.PI/2);
+    ctxSc.fillText('PC2 — Urbanizacion (24.7%)', 0, 0); ctxSc.restore();
+
+    // Ticks
+    ctxSc.fillStyle = '#999'; ctxSc.font = '10px Spectral, serif'; ctxSc.textAlign = 'center';
+    [-3,-2,-1,0,1,2,3].forEach(v => ctxSc.fillText(v, toX(v), pad.t+gh+14));
+    ctxSc.textAlign = 'right';
+    [-2,-1,0,1,2].forEach(v => ctxSc.fillText(v, pad.l-6, toY(v)+4));
+
+    const mostrarEtiquetas = document.getElementById('chk-etiquetas').checked;
+
+    // Puntos
+    estadosDatos.forEach(d => {
+      const px = toX(d.pc1), py = toY(d.pc2);
+      const esHover = estadoHover && estadoHover.n === d.n;
+      const col = coloresRegion[d.r];
+      ctxSc.beginPath();
+      ctxSc.arc(px, py, esHover ? 9 : 6, 0, Math.PI*2);
+      ctxSc.fillStyle = col + (esHover ? 'ff' : 'cc');
+      ctxSc.fill();
+      ctxSc.strokeStyle = 'white'; ctxSc.lineWidth = esHover ? 2.5 : 1.5; ctxSc.stroke();
+      if (mostrarEtiquetas || esHover) {
+        ctxSc.fillStyle = esHover ? col : '#666';
+        ctxSc.font = esHover ? 'bold 11px Zilla Slab, serif' : '8.5px Spectral, serif';
+        ctxSc.textAlign = 'left';
+        ctxSc.fillText(d.n, px + 9, py - 2);
+      }
+    });
+
+    // Leyenda
+    const regiones = ['South','West','Midwest','Northeast'];
+    regiones.forEach((r, i) => {
+      const lx = pad.l + i * (gw/4) + 10, ly = pad.t - 16;
+      ctxSc.beginPath(); ctxSc.arc(lx, ly, 5, 0, Math.PI*2);
+      ctxSc.fillStyle = coloresRegion[r]; ctxSc.fill();
+      ctxSc.fillStyle = '#444'; ctxSc.font = '11px Zilla Slab, serif'; ctxSc.textAlign = 'left';
+      ctxSc.fillText(r, lx+9, ly+4);
+    });
+
+    // Tooltip
+    if (estadoHover) {
+      const px = toX(estadoHover.pc1), py = toY(estadoHover.pc2);
+      const tw = 165, th = 54;
+      let tx = px + 14, ty = py - 62;
+      if (tx + tw > w - 10) tx = px - tw - 14;
+      if (ty < 10) ty = py + 14;
+      ctxSc.fillStyle = 'rgba(26,26,46,0.93)';
+      roundRect(ctxSc, tx, ty, tw, th, 6); ctxSc.fill();
+      ctxSc.fillStyle = 'white'; ctxSc.font = 'bold 11px Zilla Slab, serif'; ctxSc.textAlign = 'left';
+      ctxSc.fillText(estadoHover.n + ' — ' + estadoHover.r, tx+10, ty+16);
+      ctxSc.fillStyle = '#ccc'; ctxSc.font = '10px Courier New, monospace';
+      ctxSc.fillText('PC1: ' + estadoHover.pc1.toFixed(3), tx+10, ty+31);
+      ctxSc.fillText('PC2: ' + estadoHover.pc2.toFixed(3), tx+10, ty+45);
+    }
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+  }
+
+  canvasScatter.addEventListener('mousemove', function(e) {
+    const rect = canvasScatter.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const w = parseFloat(canvasScatter.style.width), h = parseFloat(canvasScatter.style.height);
+    const pad = {t:40,r:20,b:50,l:60};
+    const gw = w-pad.l-pad.r, gh = h-pad.t-pad.b;
+    const xMin=-3.5,xMax=3.5,yMin=-2.8,yMax=2.2;
+    function toX(v){return pad.l+(v-xMin)/(xMax-xMin)*gw;}
+    function toY(v){return pad.t+(yMax-v)/(yMax-yMin)*gh;}
+    let closest=null, minD=18;
+    estadosDatos.forEach(d => {
+      const dx=mx-toX(d.pc1), dy=my-toY(d.pc2);
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<minD){minD=dist;closest=d;}
+    });
+    if(closest!==estadoHover){
+      estadoHover=closest;
+      document.getElementById('hover-estado').textContent=closest?closest.n+' — '+closest.r:'';
+      dibujarScatter();
+    }
+  });
+  canvasScatter.addEventListener('mouseleave', function(){
+    estadoHover=null;
+    document.getElementById('hover-estado').textContent='';
+    dibujarScatter();
+  });
+  window.resetZoom = function(){ dibujarScatter(); };
+  dibujarScatter();
+
+  // ---- CANVAS KAISER ----
+  const canvasKaiser = document.getElementById('canvas-kaiser');
+  const ctxK = canvasKaiser.getContext('2d');
+  const eigenvalues = [2.480, 0.990, 0.357, 0.173];
+  const varianzasPct = [62.0, 24.7, 8.9, 4.3];
+  let mostrarKaiser = true, mostrarCodo = true;
+
+  window.toggleKaiser = function() { mostrarKaiser = !mostrarKaiser; dibujarKaiser(); };
+  window.toggleCodo   = function() { mostrarCodo   = !mostrarCodo;   dibujarKaiser(); };
+
+  function dibujarKaiser() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvasKaiser.parentElement.clientWidth - 48;
+    const h = 260;
+    canvasKaiser.width = w * dpr; canvasKaiser.height = h * dpr;
+    canvasKaiser.style.width = w + 'px'; canvasKaiser.style.height = h + 'px';
+    ctxK.scale(dpr, dpr);
+    ctxK.clearRect(0, 0, w, h);
+    ctxK.fillStyle = 'white'; ctxK.fillRect(0, 0, w, h);
+
+    const pad = {t:30, r:30, b:50, l:60};
+    const gw = w - pad.l - pad.r, gh = h - pad.t - pad.b;
+    const n = 4, maxEv = 3.0;
+    const bw = gw / (n + 1);
+
+    // Grid
+    ctxK.strokeStyle = '#f0f0f0'; ctxK.lineWidth = 1;
+    [0, 0.5, 1, 1.5, 2, 2.5, 3].forEach(v => {
+      const y = pad.t + gh - (v / maxEv) * gh;
+      ctxK.beginPath(); ctxK.moveTo(pad.l, y); ctxK.lineTo(pad.l + gw, y); ctxK.stroke();
+      ctxK.fillStyle = '#bbb'; ctxK.font = '10px Spectral, serif'; ctxK.textAlign = 'right';
+      ctxK.fillText(v.toFixed(1), pad.l - 6, y + 4);
+    });
+
+    // Barras eigenvalues
+    eigenvalues.forEach((ev, i) => {
+      const x = pad.l + (i + 0.4) * bw;
+      const bh = (ev / maxEv) * gh;
+      const y = pad.t + gh - bh;
+      const retenido = ev > 1;
+      ctxK.fillStyle = retenido ? '#2d6a4f' : '#cce0d8';
+      ctxK.fillRect(x, y, bw * 0.5, bh);
+      ctxK.fillStyle = '#444'; ctxK.font = 'bold 11px Zilla Slab, serif'; ctxK.textAlign = 'center';
+      ctxK.fillText('λ=' + ev.toFixed(2), x + bw * 0.25, y - 8);
+      ctxK.fillStyle = '#888'; ctxK.font = '11px Zilla Slab, serif';
+      ctxK.fillText('PC' + (i + 1), x + bw * 0.25, pad.t + gh + 16);
+      ctxK.fillStyle = '#aaa'; ctxK.font = '10px Spectral, serif';
+      ctxK.fillText(varianzasPct[i] + '%', x + bw * 0.25, pad.t + gh + 29);
+    });
+
+    // Linea Kaiser λ=1
+    if (mostrarKaiser) {
+      const yK = pad.t + gh - (1 / maxEv) * gh;
+      ctxK.strokeStyle = '#c0392b'; ctxK.lineWidth = 2; ctxK.setLineDash([6, 4]);
+      ctxK.beginPath(); ctxK.moveTo(pad.l, yK); ctxK.lineTo(pad.l + gw, yK); ctxK.stroke();
+      ctxK.setLineDash([]);
+      ctxK.fillStyle = '#c0392b'; ctxK.font = 'bold 11px Zilla Slab, serif'; ctxK.textAlign = 'left';
+      ctxK.fillText('Umbral Kaiser  λ = 1', pad.l + 8, yK - 6);
+    }
+
+    // Linea de curva de eigenvalues (scree)
+    ctxK.strokeStyle = '#5a189a'; ctxK.lineWidth = 2.5; ctxK.setLineDash([]);
+    ctxK.beginPath();
+    eigenvalues.forEach((ev, i) => {
+      const cx = pad.l + (i + 0.65) * bw;
+      const cy = pad.t + gh - (ev / maxEv) * gh;
+      if (i === 0) ctxK.moveTo(cx, cy); else ctxK.lineTo(cx, cy);
+    });
+    ctxK.stroke();
+    eigenvalues.forEach((ev, i) => {
+      const cx = pad.l + (i + 0.65) * bw;
+      const cy = pad.t + gh - (ev / maxEv) * gh;
+      ctxK.beginPath(); ctxK.arc(cx, cy, 5, 0, Math.PI * 2);
+      ctxK.fillStyle = '#5a189a'; ctxK.fill();
+    });
+
+    // Codo
+    if (mostrarCodo) {
+      const cx = pad.l + (1 + 0.65) * bw; // entre PC2 y PC3
+      const cy = pad.t + gh - (0.990 / maxEv) * gh;
+      ctxK.strokeStyle = '#b08968'; ctxK.lineWidth = 2;
+      ctxK.beginPath(); ctxK.arc(cx, cy, 14, 0, Math.PI * 2); ctxK.stroke();
+      ctxK.fillStyle = '#b08968'; ctxK.font = 'bold 11px Zilla Slab, serif'; ctxK.textAlign = 'left';
+      ctxK.fillText('codo', cx + 18, cy + 4);
+    }
+
+    // Etiqueta Y
+    ctxK.save(); ctxK.translate(14, pad.t + gh / 2); ctxK.rotate(-Math.PI / 2);
+    ctxK.fillStyle = '#666'; ctxK.font = '12px Spectral, serif'; ctxK.textAlign = 'center';
+    ctxK.fillText('Eigenvalue (λ)', 0, 0); ctxK.restore();
+
+    // Leyendas
+    ctxK.fillStyle = '#2d6a4f'; ctxK.fillRect(pad.l, h - 16, 12, 10);
+    ctxK.fillStyle = '#555'; ctxK.font = '10px Spectral, serif'; ctxK.textAlign = 'left';
+    ctxK.fillText('Retenido', pad.l + 16, h - 8);
+    ctxK.fillStyle = '#cce0d8'; ctxK.fillRect(pad.l + 90, h - 16, 12, 10);
+    ctxK.fillStyle = '#555'; ctxK.fillText('Descartado', pad.l + 106, h - 8);
+  }
+  dibujarKaiser();
+
+  // ---- CANVAS PCR MULTICOLINEALIDAD ----
+  const canvasPCR = document.getElementById('canvas-pcr');
+  const ctxPCR = canvasPCR.getContext('2d');
+  let rhoPCR = 0.30;
+
+  function seError(rho) {
+    // SE de OLS crece como 1/sqrt(1-rho^2) con multicolinealidad
+    return 1 / Math.sqrt(Math.max(0.001, 1 - rho * rho));
+  }
+
+  function dibujarPCR() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvasPCR.parentElement.clientWidth - 48;
+    const h = 300;
+    canvasPCR.width = w * dpr; canvasPCR.height = h * dpr;
+    canvasPCR.style.width = w + 'px'; canvasPCR.style.height = h + 'px';
+    ctxPCR.scale(dpr, dpr);
+    ctxPCR.clearRect(0, 0, w, h);
+    ctxPCR.fillStyle = 'white'; ctxPCR.fillRect(0, 0, w, h);
+
+    const pad = {t:30, r:30, b:60, l:70};
+    const gw = w - pad.l - pad.r, gh = h - pad.t - pad.b;
+    const nPtos = 100;
+    const maxSE = 8;
+
+    // Grid
+    ctxPCR.strokeStyle = '#f0f0f0'; ctxPCR.lineWidth = 1;
+    [0, 2, 4, 6, 8].forEach(v => {
+      const y = pad.t + gh - (v / maxSE) * gh;
+      ctxPCR.beginPath(); ctxPCR.moveTo(pad.l, y); ctxPCR.lineTo(pad.l + gw, y); ctxPCR.stroke();
+      ctxPCR.fillStyle = '#bbb'; ctxPCR.font = '10px Spectral, serif'; ctxPCR.textAlign = 'right';
+      ctxPCR.fillText(v.toFixed(0) + 'x', pad.l - 6, y + 4);
+    });
+
+    // Etiquetas ejes
+    ctxPCR.fillStyle = '#555'; ctxPCR.font = '12px Zilla Slab, serif'; ctxPCR.textAlign = 'center';
+    ctxPCR.fillText('Correlacion entre predictores (rho)', pad.l + gw / 2, h - 10);
+    ctxPCR.save(); ctxPCR.translate(14, pad.t + gh / 2); ctxPCR.rotate(-Math.PI / 2);
+    ctxPCR.fillText('Inflacion del error estandar', 0, 0); ctxPCR.restore();
+
+    // Ticks X
+    ctxPCR.fillStyle = '#999'; ctxPCR.font = '10px Spectral, serif'; ctxPCR.textAlign = 'center';
+    [0, 0.2, 0.4, 0.6, 0.8, 0.95].forEach(v => {
+      const x = pad.l + v * gw;
+      ctxPCR.fillText(v.toFixed(2), x, pad.t + gh + 14);
+      ctxPCR.strokeStyle = '#f0f0f0'; ctxPCR.lineWidth = 1;
+      ctxPCR.beginPath(); ctxPCR.moveTo(x, pad.t); ctxPCR.lineTo(x, pad.t + gh); ctxPCR.stroke();
+    });
+
+    // Curva OLS
+    ctxPCR.strokeStyle = '#e05a00'; ctxPCR.lineWidth = 2.5; ctxPCR.setLineDash([]);
+    ctxPCR.beginPath();
+    for (let i = 0; i <= nPtos; i++) {
+      const rho = i / nPtos * 0.99;
+      const se = Math.min(seError(rho), maxSE);
+      const x = pad.l + rho * gw;
+      const y = pad.t + gh - (se / maxSE) * gh;
+      if (i === 0) ctxPCR.moveTo(x, y); else ctxPCR.lineTo(x, y);
+    }
+    ctxPCR.stroke();
+
+    // Linea PCR (siempre 1)
+    ctxPCR.strokeStyle = '#2d6a4f'; ctxPCR.lineWidth = 2.5;
+    ctxPCR.setLineDash([6, 4]);
+    ctxPCR.beginPath();
+    ctxPCR.moveTo(pad.l, pad.t + gh - (1 / maxSE) * gh);
+    ctxPCR.lineTo(pad.l + gw, pad.t + gh - (1 / maxSE) * gh);
+    ctxPCR.stroke();
+    ctxPCR.setLineDash([]);
+
+    // Marcador rho actual
+    const xCur = pad.l + rhoPCR * gw;
+    const seOLS = Math.min(seError(rhoPCR), maxSE);
+    const yCurOLS = pad.t + gh - (seOLS / maxSE) * gh;
+    const yCurPCR = pad.t + gh - (1 / maxSE) * gh;
+
+    // Linea vertical rho actual
+    ctxPCR.strokeStyle = '#9d4edd'; ctxPCR.lineWidth = 1.5; ctxPCR.setLineDash([3, 3]);
+    ctxPCR.beginPath(); ctxPCR.moveTo(xCur, pad.t); ctxPCR.lineTo(xCur, pad.t + gh); ctxPCR.stroke();
+    ctxPCR.setLineDash([]);
+
+    // Punto OLS
+    ctxPCR.beginPath(); ctxPCR.arc(xCur, yCurOLS, 7, 0, Math.PI * 2);
+    ctxPCR.fillStyle = '#e05a00'; ctxPCR.fill();
+    ctxPCR.strokeStyle = 'white'; ctxPCR.lineWidth = 2; ctxPCR.stroke();
+
+    // Punto PCR
+    ctxPCR.beginPath(); ctxPCR.arc(xCur, yCurPCR, 7, 0, Math.PI * 2);
+    ctxPCR.fillStyle = '#2d6a4f'; ctxPCR.fill();
+    ctxPCR.strokeStyle = 'white'; ctxPCR.lineWidth = 2; ctxPCR.stroke();
+
+    // Etiquetas puntos
+    ctxPCR.font = 'bold 11px Zilla Slab, serif'; ctxPCR.textAlign = 'left';
+    ctxPCR.fillStyle = '#e05a00';
+    ctxPCR.fillText('OLS: ' + seOLS.toFixed(2) + 'x', xCur + 10, yCurOLS - 6);
+    ctxPCR.fillStyle = '#2d6a4f';
+    ctxPCR.fillText('PCR: 1.00x', xCur + 10, yCurPCR - 6);
+
+    // Leyendas
+    ctxPCR.strokeStyle = '#e05a00'; ctxPCR.lineWidth = 2.5; ctxPCR.setLineDash([]);
+    ctxPCR.beginPath(); ctxPCR.moveTo(pad.l, h - 16); ctxPCR.lineTo(pad.l + 24, h - 16); ctxPCR.stroke();
+    ctxPCR.fillStyle = '#555'; ctxPCR.font = '11px Spectral, serif'; ctxPCR.textAlign = 'left';
+    ctxPCR.fillText('Error estandar OLS (multicolineal)', pad.l + 28, h - 12);
+    ctxPCR.strokeStyle = '#2d6a4f'; ctxPCR.setLineDash([5, 4]);
+    ctxPCR.beginPath(); ctxPCR.moveTo(pad.l + 260, h - 16); ctxPCR.lineTo(pad.l + 284, h - 16); ctxPCR.stroke();
+    ctxPCR.setLineDash([]);
+    ctxPCR.fillText('Error estandar PCR (estable)', pad.l + 288, h - 12);
+  }
+
+  const sliderPCR = document.getElementById('slider-pcr');
+  sliderPCR.addEventListener('input', function() {
+    rhoPCR = parseInt(this.value) / 100;
+    document.getElementById('val-pcr').textContent = 'rho = ' + rhoPCR.toFixed(2);
+    dibujarPCR();
+  });
+  dibujarPCR();
+
+  // ---- RESIZE ----
+  window.addEventListener('resize', function() {
+    dibujarGeom();
+    dibujarScree(parseInt(document.getElementById('slider-comp').value));
+    dibujarTransform(parseInt(document.getElementById('slider-anim').value) / 100);
+    dibujarHeatmap();
+    dibujarOrto();
+    dibujarScatter();
+    dibujarKaiser();
+    dibujarPCR();
+  });
+
+})();
+</script>
+</body>
+</html>

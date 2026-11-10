@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Metricas de Clasificacion — Compra de Tablet</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --ink: #0d0d0d;
+    --mid: #505050;
+    --soft: #888888;
+    --light: #e6e6e6;
+    --rule: 1px solid #ddd;
+    --accent: #1a3a5c;
+    --accent2: #2560a0;
+    --accent3: #5b9bd5;
+    --accent4: #d0e4f7;
+    --green: #1e6b45;
+    --green-light: #e8f5ee;
+    --amber: #b5680d;
+    --amber-light: #fdf3e3;
+    --red: #b52a2a;
+    --red-light: #fdf0f0;
+    --cream: #faf8f5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  /* ── NAV STICKY ── */
+  .lg-nav {
+    position: sticky; top: 0;
+    background: #fff;
+    border-bottom: var(--rule);
+    display: flex; align-items: center;
+    justify-content: space-between;
+    padding: 0 32px; height: 50px;
+    z-index: 100;
+  }
+  .nav-brand { font-family: 'Playfair Display', serif; font-size: 0.92rem; letter-spacing: 0.01em; color: var(--ink); }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .nav-pills { display: flex; gap: 4px; }
+  .nav-pill {
+    width: 25px; height: 25px; border-radius: 50%;
+    border: 1.5px solid var(--light); background: transparent;
+    cursor: pointer; font-size: 0.65rem;
+    font-family: 'IBM Plex Mono', monospace; color: var(--soft);
+    transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+  }
+  .nav-pill:hover { border-color: var(--accent2); color: var(--accent2); }
+  .nav-pill.active { background: var(--accent); border-color: var(--accent); color: white; }
+  .nav-counter { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: #bbb; min-width: 34px; }
+
+  /* ── PROGRESS ── */
+  .lg-progress-wrap { height: 2px; background: var(--light); position: sticky; top: 50px; z-index: 99; }
+  #lg-progress { height: 100%; background: var(--accent2); transition: width 0.4s ease; width: 0%; }
+
+  /* ── SLIDES ── */
+  .slide {
+    display: none;
+    min-height: calc(100vh - 52px - 2px - 48px);
+    padding: 40px 64px 60px;
+    flex-direction: column;
+    animation: fadeSlide 0.35s ease both;
+    overflow-y: auto;
+  }
+  .slide.active { display: flex; }
+  @keyframes fadeSlide { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+  /* ── BOTTOM NAV ── */
+  .lg-bottom-nav {
+    position: sticky; bottom: 0;
+    background: #fff; border-top: var(--rule);
+    display: flex; align-items: center;
+    justify-content: flex-end; gap: 10px;
+    padding: 8px 32px; z-index: 100;
+  }
+  .btn {
+    padding: 8px 22px; border: 1.5px solid var(--ink);
+    background: transparent; color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.82rem; font-weight: 500;
+    cursor: pointer; border-radius: 3px;
+    transition: background 0.18s, color 0.18s;
+  }
+  .btn:hover { background: var(--ink); color: #fff; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
+
+  /* ── LAYOUT ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 1.5rem; }
+  .two-col-wide { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 44px; margin-top: 1.5rem; }
+  @media (max-width: 760px) { .two-col, .two-col-wide { grid-template-columns: 1fr; gap: 24px; } }
+
+  /* ── TYPOGRAPHY ── */
+  .slide-label {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent2);
+    margin-bottom: 0.5rem; display: block;
+  }
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.7rem, 3vw, 2.3rem);
+    font-weight: 700; line-height: 1.15;
+    color: var(--ink); margin-bottom: 0.25rem;
+  }
+  h2 em { font-style: italic; color: var(--accent2); }
+  .slide-intro {
+    font-size: 0.97rem; color: var(--mid);
+    max-width: 600px; margin-bottom: 1.5rem;
+    border-bottom: var(--rule); padding-bottom: 1.25rem;
+  }
+  h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem; font-weight: 700;
+    color: var(--ink); margin-bottom: 0.6rem;
+  }
+  p { color: var(--mid); font-size: 0.94rem; margin-bottom: 0.85rem; line-height: 1.7; }
+  strong { color: var(--ink); font-weight: 500; }
+
+  /* ── CALLOUT ── */
+  .callout {
+    background: var(--accent4);
+    border-left: 3px solid var(--accent2);
+    padding: 0.85rem 1.1rem;
+    border-radius: 0 6px 6px 0;
+    margin: 1rem 0;
+    font-size: 0.9rem; color: var(--accent);
+  }
+  .callout-green {
+    background: var(--green-light);
+    border-left: 3px solid var(--green);
+    padding: 0.85rem 1.1rem;
+    border-radius: 0 6px 6px 0;
+    margin: 1rem 0;
+    font-size: 0.9rem; color: var(--green);
+  }
+  .callout-amber {
+    background: var(--amber-light);
+    border-left: 3px solid var(--amber);
+    padding: 0.85rem 1.1rem;
+    border-radius: 0 6px 6px 0;
+    margin: 1rem 0;
+    font-size: 0.9rem; color: var(--amber);
+  }
+  .callout strong, .callout-green strong, .callout-amber strong { color: inherit; font-weight: 600; }
+
+  /* ── METRIC CARDS ── */
+  .metric-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px; margin: 1rem 0;
+  }
+  .metric-row-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px; margin: 1rem 0;
+  }
+  .metric-card {
+    background: var(--cream);
+    border: 1px solid var(--light);
+    border-radius: 8px; padding: 0.9rem 1rem;
+    border-top: 3px solid var(--light);
+  }
+  .metric-card .mc-label {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--soft); margin-bottom: 4px;
+  }
+  .metric-card .mc-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.55rem; font-weight: 700; color: var(--ink); line-height: 1;
+  }
+  .metric-card .mc-desc {
+    font-size: 11px; color: var(--soft); margin-top: 5px; line-height: 1.4;
+  }
+
+  /* ── RESULT BOX ── */
+  .result-box {
+    background: var(--bg);
+    border: 1.5px solid var(--ink);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+    display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap;
+  }
+  .result-badge {
+    background: var(--ink); color: #fff;
+    border-radius: 5px; padding: 0.35rem 0.85rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.35rem; font-weight: 700;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .result-text { flex: 1; min-width: 180px; }
+  .result-text strong { display: block; font-size: 0.88rem; margin-bottom: 3px; color: var(--ink); }
+  .result-text p { font-size: 0.86rem; color: var(--soft); margin: 0; line-height: 1.55; }
+
+  /* ── TABLES ── */
+  .tbl {
+    width: 100%; border-collapse: collapse;
+    margin: 1rem 0; font-size: 0.87rem;
+  }
+  .tbl thead th {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--soft);
+    text-align: left; padding: 0.5rem 0.7rem;
+    border-bottom: 1.5px solid var(--ink);
+  }
+  .tbl tbody tr { border-bottom: 1px solid var(--light); }
+  .tbl tbody tr:hover { background: var(--cream); }
+  .tbl td { padding: 0.6rem 0.7rem; color: var(--mid); vertical-align: top; }
+  .tbl td:first-child { font-weight: 500; color: var(--ink); }
+  .tbl tr.highlight-row { background: var(--accent4); }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block; padding: 2px 9px; border-radius: 4px;
+    font-size: 11px; font-weight: 500;
+  }
+  .badge-great { background: var(--green-light); color: var(--green); }
+  .badge-good  { background: var(--accent4); color: var(--accent); }
+  .badge-ok    { background: var(--amber-light); color: var(--amber); }
+  .badge-poor  { background: var(--red-light); color: var(--red); }
+
+  /* ── FORMULA BLOCK ── */
+  .formula-block {
+    background: var(--cream); border: 1px solid var(--light);
+    border-radius: 8px; padding: 1.1rem 1.4rem;
+    margin: 0.75rem 0;
+  }
+  .formula-label {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--soft); margin-bottom: 6px;
+  }
+  .formula-eq {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem; color: var(--ink); line-height: 1.8;
+    border-left: 3px solid var(--light); padding-left: 1rem;
+  }
+  .frac {
+    display: inline-flex; flex-direction: column;
+    align-items: center; vertical-align: middle;
+    margin: 0 4px; font-size: 0.85rem;
+  }
+  .frac .num { border-bottom: 1.5px solid var(--ink); padding: 0 5px 2px; }
+  .frac .den { padding: 2px 5px 0; }
+  .formula-note { font-size: 0.82rem; color: var(--soft); margin-top: 6px; }
+
+  /* ── CONFUSION MATRIX ── */
+  .cm-grid {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr;
+    grid-template-rows: auto 1fr 1fr;
+    gap: 5px; flex-shrink: 0;
+  }
+  .cm-lbl {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--soft);
+    display: flex; align-items: center; justify-content: center; padding: 4px 6px;
+  }
+  .cm-lbl.rl { writing-mode: vertical-rl; transform: rotate(180deg); }
+  .cm-cell {
+    width: 88px; height: 72px; border-radius: 7px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 3px; border: 1px solid var(--light);
+    transition: transform 0.15s; cursor: default;
+  }
+  .cm-cell:hover { transform: scale(1.04); }
+  .cm-abbr { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  .cm-count { font-family: 'Playfair Display', serif; font-size: 1.45rem; font-weight: 700; line-height: 1; }
+  .cm-name { font-size: 9px; opacity: 0.75; }
+  .cm-tp { background: var(--green-light); color: var(--green); border-color: #b8dfc8; }
+  .cm-tn { background: var(--accent4); color: var(--accent); border-color: #c0d4f0; }
+  .cm-fp { background: var(--amber-light); color: var(--amber); border-color: #f0d8a0; }
+  .cm-fn { background: var(--red-light); color: var(--red); border-color: #f0c0c0; }
+
+  /* ── INTERACTIVE SIM ── */
+  .sim-box {
+    background: var(--cream); border: 1px solid var(--light);
+    border-radius: 8px; padding: 1.1rem 1.25rem; margin: 0.75rem 0;
+  }
+  .sim-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.88rem; font-weight: 700; font-style: italic;
+    color: var(--ink); margin-bottom: 0.9rem;
+  }
+  .sim-sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1.5rem; margin-bottom: 0.9rem; }
+  .sim-row { display: flex; flex-direction: column; gap: 3px; }
+  .sim-row label {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--soft);
+    display: flex; justify-content: space-between;
+  }
+  .sim-row label span { color: var(--ink); font-weight: 500; }
+  .sim-results {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 8px; padding-top: 0.9rem; border-top: var(--rule);
+  }
+  .sim-card {
+    background: var(--bg); border-radius: 6px;
+    padding: 0.7rem 0.9rem; text-align: center;
+    border: 1px solid var(--light);
+  }
+  .sim-card-label {
+    font-size: 9px; font-weight: 500; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--soft); margin-bottom: 4px;
+  }
+  .sim-card-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.35rem; font-weight: 700; color: var(--ink); line-height: 1;
+  }
+  .sim-card-value.hi { color: var(--accent2); }
+
+  /* ── TRADEOFF BARS ── */
+  .tbar-wrap { margin: 0.75rem 0; }
+  .tbar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 12px; }
+  .tbar-lbl { width: 70px; color: var(--mid); font-weight: 500; text-align: right; flex-shrink: 0; }
+  .tbar-bg { flex: 1; height: 9px; background: var(--light); border-radius: 5px; overflow: hidden; }
+  .tbar-fill { height: 100%; border-radius: 5px; transition: width 0.4s ease; }
+  .tbar-val { width: 36px; font-weight: 500; color: var(--ink); font-size: 12px; }
+
+  /* ── CHART ── */
+  .chart-card {
+    background: var(--bg); border: 1px solid var(--light);
+    border-radius: 8px; padding: 1.25rem 1.4rem; margin: 0.75rem 0;
+  }
+  .chart-header {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 8px;
+  }
+  .chart-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.9rem; font-weight: 700; color: var(--ink);
+  }
+  .auc-badge {
+    background: var(--ink); color: #fff;
+    padding: 0.25rem 0.7rem; border-radius: 4px;
+    font-size: 0.82rem; font-weight: 500;
+  }
+  .chart-wrap { position: relative; width: 100%; height: 240px; }
+  .slider-row {
+    margin-top: 0.85rem; padding-top: 0.85rem; border-top: var(--rule);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .slider-row label {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--soft); white-space: nowrap;
+  }
+  .slider-row input[type=range] { flex: 1; min-width: 100px; accent-color: var(--ink); }
+  .slider-val { font-size: 12px; font-weight: 500; color: var(--ink); min-width: 26px; }
+
+  /* ── SCENARIO CARDS ── */
+  .scenario-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 0.75rem 0; }
+  .sc-card { border-radius: 8px; padding: 1.1rem 1.2rem; }
+  .sc-card .sc-label {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.12em;
+    text-transform: uppercase; margin-bottom: 0.35rem;
+  }
+  .sc-card h4 {
+    font-family: 'Playfair Display', serif; font-size: 1rem;
+    font-weight: 700; margin-bottom: 0.5rem;
+  }
+  .sc-card p { font-size: 0.84rem; line-height: 1.55; margin-bottom: 0.5rem; }
+  .sc-card .sc-metric { font-size: 12px; font-weight: 500; margin-top: 0.4rem; }
+
+  /* ── PORTADA ── */
+  .portada-hero {
+    display: flex; flex-direction: column; justify-content: center;
+    flex: 1; padding: 1rem 0;
+  }
+  .portada-eyebrow {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--soft); margin-bottom: 1rem;
+  }
+  .portada-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.2rem, 4vw, 3rem);
+    font-weight: 700; line-height: 1.1; color: var(--ink);
+    margin-bottom: 0.3rem;
+  }
+  .portada-title em { font-style: italic; color: var(--accent2); }
+  .portada-sub {
+    font-size: 1rem; color: var(--mid); max-width: 520px;
+    margin-bottom: 2rem;
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="lg-nav">
+  <span class="nav-brand">Metricas de Clasificacion</span>
+  <div class="nav-right">
+    <div class="nav-pills" id="navPills"></div>
+    <span class="nav-counter" id="navCounter">1 / 9</span>
+  </div>
+</nav>
+<div class="lg-progress-wrap"><div id="lg-progress"></div></div>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 1 — PORTADA / RESUMEN EJECUTIVO
+══════════════════════════════════════════════════════ -->
+<section class="slide active" id="slide-1">
+  <div class="portada-hero">
+    <p class="portada-eyebrow">Clasificacion binaria · Logit · statsmodels</p>
+    <h1 class="portada-title">Metricas de<br><em>Evaluacion</em></h1>
+    <p class="portada-sub">Resultados del modelo Logit de compra de tablet, evaluado sobre el conjunto de test (n = 80): 28 compradores reales y 52 no compradores.</p>
+
+    <div class="metric-row">
+      <div class="metric-card" style="border-top-color: var(--accent2)">
+        <div class="mc-label">AUC-ROC</div>
+        <div class="mc-value" style="color:var(--accent2)">0.9684</div>
+        <div class="mc-desc">Excelente discriminacion en datos no vistos</div>
+      </div>
+      <div class="metric-card" style="border-top-color: var(--ink)">
+        <div class="mc-label">Accuracy</div>
+        <div class="mc-value">88.8%</div>
+        <div class="mc-desc">71 de 80 clasificados correctamente</div>
+      </div>
+      <div class="metric-card" style="border-top-color: var(--green)">
+        <div class="mc-label">Recall</div>
+        <div class="mc-value" style="color:var(--green)">75.0%</div>
+        <div class="mc-desc">21 de 28 compradores reales detectados</div>
+      </div>
+      <div class="metric-card" style="border-top-color: var(--amber)">
+        <div class="mc-label">Precision</div>
+        <div class="mc-value" style="color:var(--amber)">91.3%</div>
+        <div class="mc-desc">21 de 23 predicciones positivas correctas</div>
+      </div>
+      <div class="metric-card" style="border-top-color: var(--red)">
+        <div class="mc-label">F1-Score</div>
+        <div class="mc-value" style="color:var(--red)">0.8235</div>
+        <div class="mc-desc">Balance solido precision-recall</div>
+      </div>
+    </div>
+
+    <div class="callout-green">
+      <strong>Lectura rapida:</strong> con umbral=0.5 el modelo acierta el 88.8% y genera muy pocas falsas alarmas (precision=91.3%). Se le escapan 7 de 28 compradores reales (recall=75%). Con el umbral optimo de Youden (0.280), el recall sube a 100% con especificidad del 86.5% — sin perder ningun comprador potencial.
+    </div>
+
+    <table class="tbl">
+      <thead>
+        <tr><th>Metrica</th><th>Valor (test)</th><th>Calculo</th><th>Interpretacion clave</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>AUC-ROC</td><td><span class="badge badge-great">0.9684</span></td><td>Area bajo curva ROC</td><td>Discriminacion excelente e independiente del umbral</td></tr>
+        <tr><td>Accuracy</td><td><span class="badge badge-great">88.75%</span></td><td>(21+50) / 80</td><td>Solo 9 errores en el test: 2 FP y 7 FN</td></tr>
+        <tr><td>Recall</td><td><span class="badge badge-good">75.00%</span></td><td>21 / (21+7)</td><td>Detecta 3 de cada 4 compradores reales</td></tr>
+        <tr><td>Precision</td><td><span class="badge badge-great">91.30%</span></td><td>21 / (21+2)</td><td>Casi toda prediccion positiva es correcta</td></tr>
+        <tr><td>F1-Score</td><td><span class="badge badge-great">0.8235</span></td><td>2·(0.913·0.75)/(0.913+0.75)</td><td>Balance precision-recall muy solido</td></tr>
+        <tr><td>Especificidad</td><td><span class="badge badge-great">96.15%</span></td><td>50 / (50+2)</td><td>Descarta correctamente 50 de 52 no-compradores</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 2 — QUE ES EL AUC
+══════════════════════════════════════════════════════ -->
+<section class="slide" id="slide-2">
+  <span class="slide-label">01 — Concepto</span>
+  <h2>Que es el <em>AUC</em></h2>
+  <p class="slide-intro">AUC significa <strong>Area Under the Curve</strong>: el area bajo la curva ROC. Resume en un solo numero la capacidad discriminante del modelo sin depender del umbral elegido.</p>
+
+  <div class="two-col">
+    <div>
+      <div class="callout">
+        <strong>Interpretacion directa:</strong> AUC = 0.9684 significa que si tomamos al azar un comprador real y un no-comprador, el modelo asigna mayor probabilidad de compra al comprador en el <strong>96.84%</strong> de los pares posibles. Solo en el 3.16% se equivoca en ese ranking.
+      </div>
+
+      <p>A diferencia del accuracy, la sensibilidad o el F1, el AUC evalua el <strong>ranking de probabilidades</strong> en todos los umbrales posibles simultaneamente. Por eso es especialmente util cuando las clases estan desbalanceadas o cuando el umbral optimo no es evidente.</p>
+
+      <div class="metric-row-3" style="margin-top:1.25rem">
+        <div class="metric-card">
+          <div class="mc-label">Rango</div>
+          <div class="mc-value">0 — 1</div>
+          <div class="mc-desc">Un clasificador perfecto tiene AUC = 1.0</div>
+        </div>
+        <div class="metric-card">
+          <div class="mc-label">Referencia</div>
+          <div class="mc-value">0.50</div>
+          <div class="mc-desc">Equivale a predecir al azar</div>
+        </div>
+        <div class="metric-card" style="border-top-color:var(--accent2)">
+          <div class="mc-label">Tu modelo</div>
+          <div class="mc-value" style="color:var(--accent2)">0.9684</div>
+          <div class="mc-desc">Excelente · Test set n=80</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3>Por que es mejor que el accuracy</h3>
+      <p>Cuando las clases estan desbalanceadas, un modelo que predice siempre "no compra" puede tener un 65% de accuracy sin aprender nada. El AUC no sufre este problema: compara probabilidades relativas entre pares de casos positivos y negativos.</p>
+
+      <h3>Ventaja clave: independencia del umbral</h3>
+      <p>El accuracy, recall, F1 y precision cambian cuando mueves el umbral de 0.5 a 0.3. El AUC permanece igual — resume la calidad discriminante del modelo en todos los umbrales posibles al mismo tiempo.</p>
+
+      <div class="callout-green" style="margin-top:1rem">
+        <strong>Regla practica:</strong> usa el AUC para comparar modelos entre si, y para reportar resultados en informes tecnicos. Usa recall, precision o F1 para decisiones operativas con un umbral especifico.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 3 — CURVA ROC
+══════════════════════════════════════════════════════ -->
+<section class="slide" id="slide-3">
+  <span class="slide-label">02 — Visualizacion</span>
+  <h2>La curva <em>ROC</em></h2>
+  <p class="slide-intro">La curva ROC traza el compromiso entre Sensibilidad (eje Y) y Tasa de Falsos Positivos (eje X) al mover el umbral de 0 a 1. El AUC es el area coloreada debajo de esa trayectoria.</p>
+
+  <div class="two-col-wide">
+    <div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Curva ROC — ajusta la calidad del modelo</div>
+          <div class="auc-badge">AUC = <span id="auc-display">0.97</span></div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="rocChart"></canvas>
+        </div>
+        <div class="slider-row">
+          <label for="quality-slider">Calidad</label>
+          <input type="range" id="quality-slider" min="5" max="105" value="103">
+          <span class="slider-val" id="slider-val">103</span>
+          <span style="font-size:11px;color:var(--soft);padding-left:8px;border-left:var(--rule)" id="interp-label">Excelente</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3>Los dos ejes</h3>
+      <p><strong>Eje Y — Sensibilidad (TPR):</strong> de todos los clientes que compraron la tablet, que fraccion detecta el modelo correctamente.</p>
+      <p><strong>Eje X — 1-Especificidad (FPR):</strong> de todos los que no compraron, que fraccion clasifica el modelo erroneamente como compradores.</p>
+
+      <div class="result-box" style="margin-top:1rem">
+        <div class="result-badge">0.9684</div>
+        <div class="result-text">
+          <strong>Modelo de compra de tablet (test set)</strong>
+          <p>La curva sube casi verticalmente hacia TPR=1.0 con muy poco FPR — el modelo captura casi todos los compradores antes de cometer errores significativos. Con umbral optimo 0.280: Sens=100%, Espec=86.5%.</p>
+        </div>
+      </div>
+
+      <p style="font-size:0.86rem;color:var(--soft);margin-top:0.75rem">La <strong>diagonal punteada</strong> es el clasificador aleatorio (AUC=0.50). Toda curva por encima aporta valor real. Cuanto mas cerca de la esquina superior izquierda, mayor el AUC.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 4 — INTERPRETACION DEL AUC
+══════════════════════════════════════════════════════ -->
+<section class="slide" id="slide-4">
+  <span class="slide-label">03 — Escala de referencia</span>
+  <h2>Como interpretar el <em>valor</em></h2>
+  <p class="slide-intro">Rangos convencionales para interpretar el AUC en problemas de clasificacion binaria.</p>
+
+  <div class="two-col">
+    <div>
+      <table class="tbl">
+        <thead>
+          <tr><th>Calificacion</th><th>Rango AUC</th><th>Significado practico</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Pobre</td><td><span class="badge badge-poor">menor 0.70</span></td><td>Apenas supera al azar. Revisar variables o especificacion.</td></tr>
+          <tr><td>Aceptable</td><td><span class="badge badge-ok">0.70 — 0.80</span></td><td>Discriminacion moderada. Util con pocos datos.</td></tr>
+          <tr><td>Bueno</td><td><span class="badge badge-good">0.80 — 0.90</span></td><td>Discriminacion solida para aplicaciones practicas.</td></tr>
+          <tr class="highlight-row"><td><strong>Excelente</strong></td><td><span class="badge badge-great">mayor 0.90</span></td><td>Alta capacidad discriminante. Verificar data leakage.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout" style="margin-top:1rem">
+        <strong>Advertencia:</strong> un AUC cercano a 1.0 en datos de entrenamiento puede indicar sobreajuste o data leakage (informacion del futuro filtrada al pasado). Siempre calcular sobre el test set.
+      </div>
+    </div>
+
+    <div>
+      <div class="result-box">
+        <div class="result-badge" style="background:var(--green);color:#fff">Excelente</div>
+        <div class="result-text">
+          <strong>AUC (test) = 0.9684</strong>
+          <p>Clasificacion excelente sobre 80 observaciones no vistas durante el entrenamiento. Esto descarta sobreajuste.</p>
+        </div>
+      </div>
+
+      <h3 style="margin-top:1.25rem">Comparacion train vs test</h3>
+      <table class="tbl">
+        <thead>
+          <tr><th>Conjunto</th><th>AUC</th><th>Calificacion</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Train (dataset completo)</td><td>0.9272</td><td><span class="badge badge-great">Excelente</span></td></tr>
+          <tr class="highlight-row"><td>Test (20% separado, n=80)</td><td><strong>0.9684</strong></td><td><span class="badge badge-great">Excelente</span></td></tr>
+        </tbody>
+      </table>
+
+      <p style="font-size:0.86rem;color:var(--soft)">El AUC en test es mayor que en train, lo cual ocurre cuando el subconjunto reservado resulta levemente mas facil de separar por composicion aleatoria. Lo importante: no cayo, confirmando que el modelo generaliza bien y no sobreajusta.</p>
+
+      <div class="callout-green">
+        <strong>Conclusion:</strong> el modelo tiene excelente poder discriminante en datos nuevos. El McFadden R²=0.4711 del entrenamiento anticipaba este resultado.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 5 — CUANDO USAR
+══════════════════════════════════════════════════════ -->
+<section class="slide" id="slide-5">
+  <span class="slide-label">04 — Aplicacion</span>
+  <h2>Cuando usar <em>cada metrica</em></h2>
+  <p class="slide-intro">El AUC no reemplaza a las demas metricas; las complementa. La eleccion depende del objetivo del analisis y del costo de cada tipo de error.</p>
+
+  <div class="two-col">
+    <div>
+      <h3>Guia de seleccion por objetivo</h3>
+      <table class="tbl">
+        <thead>
+          <tr><th>Situacion</th><th>Metrica recomendada</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Comparar dos o mas modelos entre si</td><td><strong>AUC-ROC</strong></td></tr>
+          <tr><td>Decidir a quien contactar (accion operativa)</td><td><strong>Recall o Precision</strong> (segun costo)</td></tr>
+          <tr><td>Reportar en informe tecnico o academico</td><td><strong>AUC + F1</strong></td></tr>
+          <tr><td>Clases muy desbalanceadas</td><td><strong>AUC</strong> (mas confiable que accuracy)</td></tr>
+          <tr><td>Evaluacion independiente del umbral</td><td><strong>AUC</strong> (unica metrica que lo logra)</td></tr>
+          <tr class="highlight-row"><td>Modelo de compra de tablet</td><td><strong>AUC</strong> (comparar) + <strong>Recall</strong> (operar)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div>
+      <h3>Por que AUC es mas confiable con desbalance</h3>
+      <p>Cuando una clase es mucho menos frecuente (ej: 10% compra, 90% no), el accuracy puede ser artificialmente alto: un modelo que siempre predice "no compra" alcanza 90% de accuracy sin aprender nada. El AUC no sufre esto porque compara probabilidades relativas, no conteos absolutos.</p>
+
+      <h3>Resumen visual de cada metrica</h3>
+      <table class="tbl">
+        <thead>
+          <tr><th>Metrica</th><th>Que captura</th><th>Limitacion</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Accuracy</td><td>Aciertos globales</td><td>Engañosa con desbalance</td></tr>
+          <tr><td>Recall</td><td>Detecta positivos reales</td><td>No penaliza FP</td></tr>
+          <tr><td>Precision</td><td>Exactitud de alarmas</td><td>No penaliza FN</td></tr>
+          <tr><td>F1-Score</td><td>Balance precision-recall</td><td>Ignora TN</td></tr>
+          <tr><td>AUC-ROC</td><td>Discriminacion global</td><td>Menos interpretable directamente</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 6 — ACCURACY + MATRIZ DE CONFUSION
+══════════════════════════════════════════════════════ -->
+<section class="slide" id="slide-6">
+  <span class="slide-label">06 — Metrica</span>
+  <h2><em>Accuracy</em> y Matriz de Confusion</h2>
+  <p class="slide-intro">El accuracy mide la proporcion de predicciones correctas. La matriz de confusion descompone los aciertos y errores por tipo. Valores del test set (n=80, umbral=0.5).</p>
+
+  <div class="two-col-wide">
+    <!-- Columna izquierda: CM + resultado -->
+    <div>
+      <div class="formula-block">
+        <div class="formula-label">Formula</div>
+        <div class="formula-eq">
+          Accuracy = <span class="frac"><span class="num">TP + TN</span><span class="den">TP + TN + FP + FN</span></span>
+          = <span class="frac"><span class="num">21 + 50</span><span class="den">80</span></span> = <strong>0.8875</strong>
+        </div>
+      </div>
+
+      <div style="margin:1rem 0">
+        <div style="font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--soft);margin-bottom:6px;text-align:center">Valor predicho</div>
+        <div class="cm-grid">
+          <div></div>
+          <div class="cm-lbl" style="font-size:9px">Positivo (compra)</div>
+          <div class="cm-lbl" style="font-size:9px">Negativo (no compra)</div>
+          <div class="cm-lbl rl" style="font-size:9px">Real positivo</div>
+          <div class="cm-cell cm-tp">
+            <span class="cm-abbr">TP</span>
+            <span class="cm-count" id="cm-tp">21</span>
+            <span class="cm-name">Verdadero Positivo</span>
+          </div>
+          <div class="cm-cell cm-fn">
+            <span class="cm-abbr">FN</span>
+            <span class="cm-count" id="cm-fn">7</span>
+            <span class="cm-name">Falso Negativo</span>
+          </div>
+          <div class="cm-lbl rl" style="font-size:9px">Real negativo</div>
+          <div class="cm-cell cm-fp">
+            <span class="cm-abbr">FP</span>
+            <span class="cm-count" id="cm-fp">2</span>
+            <span class="cm-name">Falso Positivo</span>
+          </div>
+          <div class="cm-cell cm-tn">
+            <span class="cm-abbr">TN</span>
+            <span class="cm-count" id="cm-tn">50</span>
+            <span class="cm-name">Verdadero Negativo</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-box">
+        <div class="result-badge">88.75%</div>
+        <div class="result-text">
+          <strong>Accuracy del modelo de tablet (umbral = 0.5)</strong>
+          <p>71 correctas (TP=21 + TN=50) de 80. Solo 9 errores: 2 FP (falsas alarmas de marketing) y 7 FN (compradores no detectados).</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Columna derecha: simulador + interpretacion -->
+    <div>
+      <div class="sim-box">
+        <div class="sim-title">Simulador — ajusta la matriz y observa el accuracy</div>
+        <div class="sim-sliders">
+          <div class="sim-row">
+            <label>TP <span id="lbl-tp">21</span></label>
+            <input type="range" min="1" max="150" value="21" id="sl-tp" style="accent-color:var(--green)">
+          </div>
+          <div class="sim-row">
+            <label>TN <span id="lbl-tn">50</span></label>
+            <input type="range" min="1" max="150" value="50" id="sl-tn" style="accent-color:var(--accent2)">
+          </div>
+          <div class="sim-row">
+            <label>FP <span id="lbl-fp">2</span></label>
+            <input type="range" min="0" max="150" value="2" id="sl-fp" style="accent-color:var(--amber)">
+          </div>
+          <div class="sim-row">
+            <label>FN <span id="lbl-fn">7</span></label>
+            <input type="range" min="0" max="150" value="7" id="sl-fn" style="accent-color:var(--red)">
+          </div>
+        </div>
+        <div class="sim-results">
+          <div class="sim-card">
+            <div class="sim-card-label">Total</div>
+            <div class="sim-card-value" id="sim-total">80</div>
+          </div>
+          <div class="sim-card">
+            <div class="sim-card-label">Correctas</div>
+            <div class="sim-card-value" id="sim-correct">71</div>
+          </div>
+          <div class="sim-card">
+            <div class="sim-card-label">Accuracy</div>
+            <div class="sim-card-value hi" id="sim-accuracy">0.888</div>
+          </div>
+        </div>
+      </div>
+
+      <p style="font-size:0.85rem;color:var(--mid)"><strong>TP=21:</strong> compradores que el modelo identifico correctamente.<br>
+      <strong>TN=50:</strong> no-compradores descartados correctamente.<br>
+      <strong>FP=2:</strong> no-compradores clasificados como compradores (falsas alarmas).<br>
+      <strong>FN=7:</strong> compradores reales que el modelo no detecto (oportunidades perdidas).</p>
+
+      <div class="callout-amber">
+        <strong>Limitacion:</strong> si el 90% son negativos, un modelo que predice siempre negativo tiene 90% de accuracy sin aprender nada. Combinar siempre con recall, precision y AUC.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 7 — RECALL
+══════════════════════════════════════════════════════ -->
+<section class="slide" id="slide-7">
+  <span class="slide-label">07 — Metrica</span>
+  <h2><em>Recall</em> — Sensibilidad</h2>
+  <p class="slide-intro">Recall mide que proporcion de los positivos reales detecta el modelo. Es critico cuando el costo de un falso negativo es alto (oportunidades perdidas, diagnosticos erroneos, fraude no detectado).</p>
+
+  <div class="two-col">
+    <div>
+      <div class="formula-block">
+        <div class="formula-label">Formula</div>
+        <div class="formula-eq">
+          Recall = <span class="frac"><span class="num">TP</span><span class="den">TP + FN</span></span>
+          = <span class="frac"><span class="num">21</span><span class="den">21 + 7</span></span> = <strong>0.75</strong>
+        </div>
+        <div class="formula-note">El denominador es el total de positivos reales (28 compradores en el test).</div>
+      </div>
+
+      <div class="result-box">
+        <div class="result-badge" style="background:var(--green);color:#fff">75%</div>
+        <div class="result-text">
+          <strong>Recall del modelo de tablet (umbral = 0.5)</strong>
+          <p>21 de 28 compradores detectados. Los 7 FN representan oportunidades de venta perdidas. Con umbral optimo (0.280), el recall sube a 100% — se detectan los 28 compradores — a costa de reducir la especificidad de 96.2% a 86.5%.</p>
+        </div>
+      </div>
+
+      <div class="callout-green">
+        <strong>Recomendacion:</strong> en marketing de producto, el costo de perder un comprador potencial (FN) suele superar al costo de contactar a alguien que no comprara (FP). Baja el umbral a 0.280 para maximizar el recall.
+      </div>
+    </div>
+
+    <div>
+      <h3>Trade-off recall vs precision</h3>
+      <p style="font-size:0.87rem">Al bajar el umbral, el recall sube pero la precision baja. Al subirlo, ocurre lo inverso.</p>
+
+      <div style="background:var(--cream);border:1px solid var(--light);border-radius:8px;padding:1rem 1.25rem;margin:0.75rem 0">
+        <div style="font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--soft);margin-bottom:0.75rem">Trade-off segun umbral</div>
+        <div class="tbar-wrap">
+          <div class="tbar-row">
+            <span class="tbar-lbl">Recall</span>
+            <div class="tbar-bg"><div class="tbar-fill" id="bar-recall" style="width:82%;background:var(--green)"></div></div>
+            <span class="tbar-val" id="tval-recall">0.82</span>
+          </div>
+          <div class="tbar-row">
+            <span class="tbar-lbl">Precision</span>
+            <div class="tbar-bg"><div class="tbar-fill" id="bar-precision" style="width:68%;background:var(--accent2)"></div></div>
+            <span class="tbar-val" id="tval-precision">0.68</span>
+          </div>
+          <div class="tbar-row">
+            <span class="tbar-lbl">F1-Score</span>
+            <div class="tbar-bg"><div class="tbar-fill" id="bar-f1t" style="width:74%;background:var(--amber)"></div></div>
+            <span class="tbar-val" id="tval-f1t">0.74</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding-top:0.75rem;border-top:var(--rule)">
+          <label style="font-size:10px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--soft);white-space:nowrap">Umbral</label>
+          <input type="range" min="5" max="95" value="38" id="sl-umbral" style="flex:1;accent-color:var(--ink)">
+          <span style="font-size:12px;font-weight:500;color:var(--ink);min-width:38px;text-align:right" id="lbl-umbral">0.38</span>
+        </div>
+      </div>
+
+      <p style="font-size:0.85rem;color:var(--mid)">Un recall de 1.0 significa que el modelo encontro todos los positivos. Un recall de 0.5 significa que la mitad quedo sin detectar. El umbral por defecto en sklearn/statsmodels es 0.50 — no siempre es el optimo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 8 — F1-SCORE
+══════════════════════════════════════════════════════ -->
+<section class="slide" id="slide-8">
+  <span class="slide-label">08 — Metrica</span>
+  <h2><em>F1-Score</em> — Media armonica</h2>
+  <p class="slide-intro">El F1-Score combina precision y recall en una sola cifra. Usa la media armonica, que penaliza fuertemente el desequilibrio entre las dos metricas.</p>
+
+  <div class="two-col">
+    <div>
+      <div class="formula-block">
+        <div class="formula-label">Formula</div>
+        <div class="formula-eq">
+          F1 = 2 &times; <span class="frac"><span class="num">Precision &times; Recall</span><span class="den">Precision + Recall</span></span>
+        </div>
+        <div class="formula-note" style="margin-top:0.5rem">
+          F1 = 2 &times; (0.9130 &times; 0.75) / (0.9130 + 0.75) = <strong>0.8235</strong>
+        </div>
+      </div>
+
+      <div class="result-box">
+        <div class="result-badge">0.8235</div>
+        <div class="result-text">
+          <strong>F1-Score del modelo de tablet (umbral = 0.5)</strong>
+          <p>La precision (91.3%) supera al recall (75%), indicando que el modelo es conservador: cuando predice compra casi siempre acierta, pero se le escapan algunos compradores. La media aritmetica seria 0.830 — superior al F1 real (0.824), lo que muestra el valor de la media armonica para detectar desequilibrios.</p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Por que media armonica:</strong> si precision=1.0 y recall=0.01, la media aritmetica da 0.505 (parece aceptable). La media armonica da 0.02 (refleja la realidad: el modelo casi no detecta positivos). Penaliza el desequilibrio mucho mas sensiblemente.
+      </div>
+    </div>
+
+    <div>
+      <div class="sim-box">
+        <div class="sim-title">Calculadora F1 — valores iniciales del modelo de tablet</div>
+        <div class="sim-sliders" style="grid-template-columns:1fr">
+          <div class="sim-row">
+            <label>Precision <span id="lbl-prec-f1">0.91</span></label>
+            <input type="range" min="1" max="100" value="91" id="sl-prec-f1" style="accent-color:var(--accent2)">
+          </div>
+          <div class="sim-row">
+            <label>Recall <span id="lbl-rec-f1">0.75</span></label>
+            <input type="range" min="1" max="100" value="75" id="sl-rec-f1" style="accent-color:var(--green)">
+          </div>
+        </div>
+        <div class="sim-results" style="grid-template-columns:repeat(2,1fr)">
+          <div class="sim-card">
+            <div class="sim-card-label">F1-Score</div>
+            <div class="sim-card-value hi" id="out-f1">0.823</div>
+          </div>
+          <div class="sim-card">
+            <div class="sim-card-label">Media aritmetica</div>
+            <div class="sim-card-value" style="color:var(--soft)" id="out-arith">0.830</div>
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--soft);margin-top:0.75rem;margin-bottom:0">La diferencia entre F1 y media aritmetica crece cuando precision y recall estan mas desiguales.</p>
+      </div>
+
+      <h3 style="margin-top:1rem">Cuando usar el F1</h3>
+      <p style="font-size:0.87rem;color:var(--mid)">El F1 es la metrica de referencia cuando necesitas un unico numero que capture tanto la capacidad de deteccion (recall) como la exactitud de las alarmas (precision). Es especialmente util con clases desbalanceadas donde el accuracy puede ser engañoso.</p>
+
+      <div class="callout-green">
+        <strong>Resumen:</strong> usa AUC para comparar modelos, F1 para reportar el balance con un umbral fijo, recall cuando los FN son criticos, y accuracy solo cuando las clases estan balanceadas.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 9 — COSTOS DEL ERROR
+══════════════════════════════════════════════════════ -->
+<section class="slide" id="slide-9">
+  <span class="slide-label">09 — Aplicacion practica</span>
+  <h2>Costos del <em>error</em> y que metrica usar</h2>
+  <p class="slide-intro">Elegir la metrica correcta no es una decision tecnica, es una decision de negocio. Depende de una sola pregunta: <strong>cual de los dos errores es mas costoso?</strong></p>
+
+  <div class="scenario-grid" style="margin-bottom:1rem">
+    <div class="sc-card" style="background:var(--green-light);border:1px solid #b8dfc8">
+      <div class="sc-label" style="color:var(--green)">Escenario A — FN costoso</div>
+      <h4 style="color:#1a4a2e">El modelo deja pasar un positivo real</h4>
+      <p style="color:#2a5a38">No detecta cuando deberia. Genera oportunidades perdidas o riesgos no controlados.</p>
+      <div style="background:white;border-radius:6px;padding:0.6rem 0.8rem;font-size:0.83rem;color:var(--mid);margin-bottom:0.5rem">
+        <strong style="color:var(--ink);display:block;margin-bottom:2px">Compra de tablet (tu modelo)</strong>
+        FN = comprador potencial no identificado = venta perdida. El costo de un FP (contactar a alguien que no comprara) es menor.
+      </div>
+      <div class="sc-metric" style="color:var(--green)">Maximizar: <strong>Recall</strong> · Accion: bajar umbral</div>
+    </div>
+
+    <div class="sc-card" style="background:var(--red-light);border:1px solid #f0c0c0">
+      <div class="sc-label" style="color:var(--red)">Escenario B — FP costoso</div>
+      <h4 style="color:#4a1a1a">El modelo genera una alarma falsa</h4>
+      <p style="color:#703030">Clasifica como positivo a casos que son negativos. Genera costos operativos o financieros directos.</p>
+      <div style="background:white;border-radius:6px;padding:0.6rem 0.8rem;font-size:0.83rem;color:var(--mid);margin-bottom:0.5rem">
+        <strong style="color:var(--ink);display:block;margin-bottom:2px">Aprobacion de credito bancario</strong>
+        FP = prestar a un cliente insolvente = perdida real de capital. Un FN (rechazar un buen cliente) es tolerable.
+      </div>
+      <div class="sc-metric" style="color:var(--red)">Maximizar: <strong>Precision</strong> · Accion: subir umbral</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h3>Guia rapida por dominio</h3>
+      <table class="tbl">
+        <thead>
+          <tr><th>Problema</th><th>Error critico</th><th>Metrica</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Deteccion de cancer</td><td>FN</td><td><span class="badge badge-great">Recall</span></td></tr>
+          <tr><td>Deteccion de fraude</td><td>FN</td><td><span class="badge badge-great">Recall</span></td></tr>
+          <tr><td>Aprobacion de credito</td><td>FP</td><td><span class="badge badge-good">Precision</span></td></tr>
+          <tr><td>Filtro de spam</td><td>FP</td><td><span class="badge badge-good">Precision</span></td></tr>
+          <tr class="highlight-row"><td>Compra de tablet</td><td>FN</td><td><span class="badge badge-great">Recall</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div>
+      <h3>Aplicacion directa al modelo</h3>
+      <p style="font-size:0.87rem;color:var(--mid)">Con umbral=0.5: alta precision (91.3%) pero recall moderado (75%). En marketing, el costo de perder un comprador (FN) suele superar al de contactar a alguien que no comprara (FP).</p>
+
+      <table class="tbl" style="margin-top:0.5rem">
+        <thead>
+          <tr><th>Umbral</th><th>Recall</th><th>Precision</th><th>Efecto</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>0.50 (default)</td><td>75.0%</td><td>91.3%</td><td>7 compradores perdidos</td></tr>
+          <tr class="highlight-row"><td><strong>0.280 (Youden)</strong></td><td><strong>100%</strong></td><td>~80%</td><td>0 compradores perdidos</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout-green" style="margin-top:0.75rem">
+        <strong>Recomendacion final:</strong> usa umbral = 0.280 para capturar el 100% de los compradores potenciales. La especificidad baja de 96.2% a 86.5% — precio razonable en marketing de producto.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BOTTOM NAV -->
+<div class="lg-bottom-nav">
+  <button class="btn" id="btnPrev" onclick="navStep(-1)">Anterior</button>
+  <button class="btn btn-primary" id="btnNext" onclick="navStep(+1)">Siguiente</button>
+</div>
+
+<script>
+(function() {
+  var TOTAL = 9;
+  var titles = ['Resultados','AUC','Curva ROC','Interpretacion','Cuando Usar','Accuracy','Recall','F1-Score','Costos'];
+  var cur = 1;
+
+  function $(id) { return document.getElementById(id); }
+
+  /* ── NAVIGATION ── */
+  function navTo(n) {
+    if (n < 1 || n > TOTAL) return;
+    document.getElementById('slide-' + cur).classList.remove('active');
+    cur = n;
+    document.getElementById('slide-' + cur).classList.add('active');
+    window.scrollTo(0, 0);
+    updateUI();
+  }
+
+  function navStep(d) { navTo(cur + d); }
+
+  function updateUI() {
+    $('navCounter').textContent = cur + ' / ' + TOTAL;
+    $('lg-progress').style.width = ((cur / TOTAL) * 100) + '%';
+    $('btnPrev').disabled = cur === 1;
+    $('btnPrev').style.opacity = cur === 1 ? '0.35' : '1';
+    $('btnNext').textContent = cur === TOTAL ? 'Inicio' : 'Siguiente';
+
+    var pills = document.querySelectorAll('.nav-pill');
+    pills.forEach(function(p, i) {
+      p.classList.toggle('active', i + 1 === cur);
+    });
+  }
+
+  function buildPills() {
+    var wrap = $('navPills');
+    for (var i = 1; i <= TOTAL; i++) {
+      (function(n) {
+        var btn = document.createElement('button');
+        btn.className = 'nav-pill' + (n === 1 ? ' active' : '');
+        btn.textContent = n;
+        btn.title = titles[n - 1];
+        btn.addEventListener('click', function() { navTo(n); });
+        wrap.appendChild(btn);
+      })(i);
+    }
+  }
+
+  /* ── ROC CHART ── */
+  function generateROC(quality) {
+    var pts = [], n = 80;
+    for (var i = 0; i <= n; i++) {
+      var fpr = i / n;
+      var exp = Math.max(0.04, 1 - quality / 107);
+      pts.push({ x: fpr, y: Math.pow(fpr, exp) });
+    }
+    return pts;
+  }
+
+  function calcAUC(pts) {
+    var area = 0;
+    for (var i = 1; i < pts.length; i++) {
+      area += (pts[i].x - pts[i-1].x) * (pts[i].y + pts[i-1].y) / 2;
+    }
+    return area;
+  }
+
+  function getInterp(auc) {
+    if (auc >= 0.90) return 'Excelente';
+    if (auc >= 0.80) return 'Bueno';
+    if (auc >= 0.70) return 'Aceptable';
+    return 'Pobre';
+  }
+
+  function drawROC(quality) {
+    var canvas = $('rocChart');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var W = canvas.width, H = canvas.height;
+    var pad = { top: 16, right: 16, bottom: 44, left: 44 };
+    var pw = W - pad.left - pad.right, ph = H - pad.top - pad.bottom;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    // grid
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 1;
+    [0, 0.2, 0.4, 0.6, 0.8, 1.0].forEach(function(t) {
+      var x = pad.left + t * pw, y = pad.top + (1 - t) * ph;
+      ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + ph); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + pw, y); ctx.stroke();
+      ctx.fillStyle = '#aaa'; ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center'; ctx.fillText(t.toFixed(1), x, pad.top + ph + 14);
+      ctx.textAlign = 'right'; ctx.fillText(t.toFixed(1), pad.left - 4, y + 3);
+    });
+
+    // diagonal
+    ctx.setLineDash([5, 4]); ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(pad.left, pad.top + ph); ctx.lineTo(pad.left + pw, pad.top); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // area fill
+    var pts = generateROC(quality);
+    ctx.beginPath(); ctx.moveTo(pad.left, pad.top + ph);
+    pts.forEach(function(p) { ctx.lineTo(pad.left + p.x * pw, pad.top + (1 - p.y) * ph); });
+    ctx.lineTo(pad.left + pw, pad.top); ctx.lineTo(pad.left + pw, pad.top + ph); ctx.closePath();
+    ctx.fillStyle = 'rgba(37,96,160,0.09)'; ctx.fill();
+
+    // curve
+    ctx.beginPath();
+    pts.forEach(function(p, i) {
+      var cx = pad.left + p.x * pw, cy = pad.top + (1 - p.y) * ph;
+      if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+    });
+    ctx.strokeStyle = '#2560a0'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.stroke();
+
+    // axis labels
+    ctx.fillStyle = '#888'; ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('1 - Especificidad (FPR)', pad.left + pw / 2, H - 2);
+    ctx.save(); ctx.translate(10, pad.top + ph / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Sensibilidad (TPR)', 0, 0); ctx.restore();
+    ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 1; ctx.strokeRect(pad.left, pad.top, pw, ph);
+  }
+
+  function initROC() {
+    var canvas = $('rocChart');
+    if (!canvas) return;
+    var wrap = canvas.parentElement;
+    canvas.width  = wrap.offsetWidth  || 480;
+    canvas.height = wrap.offsetHeight || 240;
+    drawROC(103);
+
+    var slider = $('quality-slider');
+    if (slider) {
+      slider.addEventListener('input', function() {
+        var q = parseInt(this.value, 10);
+        $('slider-val').textContent = q;
+        drawROC(q);
+        var pts = generateROC(q);
+        var auc = calcAUC(pts);
+        $('auc-display').textContent  = auc.toFixed(2);
+        $('interp-label').textContent = getInterp(auc);
+      });
+      var pts0 = generateROC(103);
+      $('auc-display').textContent   = calcAUC(pts0).toFixed(2);
+      $('interp-label').textContent  = getInterp(calcAUC(pts0));
+    }
+  }
+
+  /* ── ACCURACY SIMULATOR ── */
+  function initAccuracy() {
+    var slTP = $('sl-tp'), slTN = $('sl-tn'), slFP = $('sl-fp'), slFN = $('sl-fn');
+    if (!slTP) return;
+    function update() {
+      var tp = parseInt(slTP.value), tn = parseInt(slTN.value),
+          fp = parseInt(slFP.value), fn = parseInt(slFN.value);
+      $('lbl-tp').textContent = tp; $('cm-tp').textContent = tp;
+      $('lbl-tn').textContent = tn; $('cm-tn').textContent = tn;
+      $('lbl-fp').textContent = fp; $('cm-fp').textContent = fp;
+      $('lbl-fn').textContent = fn; $('cm-fn').textContent = fn;
+      var tot = tp + tn + fp + fn;
+      $('sim-total').textContent   = tot;
+      $('sim-correct').textContent = tp + tn;
+      $('sim-accuracy').textContent = tot > 0 ? ((tp + tn) / tot).toFixed(3) : '0.000';
+    }
+    [slTP, slTN, slFP, slFN].forEach(function(sl) { sl.addEventListener('input', update); });
+    update();
+  }
+
+  /* ── RECALL TRADEOFF ── */
+  function initRecall() {
+    var sl = $('sl-umbral');
+    if (!sl) return;
+    function tradeoff(u) {
+      var t = u / 100;
+      var recall = Math.max(0, Math.min(1, 1 - 0.85 * t));
+      var prec   = Math.max(0, Math.min(1, 0.45 + 0.55 * t));
+      var f1     = (prec + recall > 0) ? 2 * prec * recall / (prec + recall) : 0;
+      $('bar-recall').style.width    = Math.round(recall * 100) + '%';
+      $('bar-precision').style.width = Math.round(prec * 100) + '%';
+      $('bar-f1t').style.width       = Math.round(f1 * 100) + '%';
+      $('tval-recall').textContent    = recall.toFixed(2);
+      $('tval-precision').textContent = prec.toFixed(2);
+      $('tval-f1t').textContent       = f1.toFixed(2);
+      $('lbl-umbral').textContent     = (u / 100).toFixed(2);
+    }
+    sl.addEventListener('input', function() { tradeoff(parseInt(this.value)); });
+    tradeoff(38);
+  }
+
+  /* ── F1 CALCULATOR ── */
+  function initF1() {
+    var slP = $('sl-prec-f1'), slR = $('sl-rec-f1');
+    if (!slP) return;
+    function updateF1() {
+      var p = parseInt(slP.value) / 100;
+      var r = parseInt(slR.value) / 100;
+      var f1    = (p + r > 0) ? 2 * p * r / (p + r) : 0;
+      var arith = (p + r) / 2;
+      $('lbl-prec-f1').textContent = p.toFixed(2);
+      $('lbl-rec-f1').textContent  = r.toFixed(2);
+      $('out-f1').textContent      = f1.toFixed(3);
+      $('out-arith').textContent   = arith.toFixed(3);
+    }
+    slP.addEventListener('input', updateF1);
+    slR.addEventListener('input', updateF1);
+    updateF1();
+  }
+
+  /* ── BOOT ── */
+  function boot() {
+    buildPills();
+    updateUI();
+    initROC();
+    initAccuracy();
+    initRecall();
+    initF1();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    setTimeout(boot, 0);
+  }
+
+  window.navStep = navStep;
+  window.navTo   = navTo;
+})();
+</script>
+</body>
+</html>

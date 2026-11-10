@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Train vs Test Split — Por que dividir los datos</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Mulish:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --ink: #121212;
+    --mid: #4a4a4a;
+    --soft: #888;
+    --light: #e4e4e4;
+    --rule: 1px solid #e0e0e0;
+    --accent: #7c3000;
+    --accent2: #b04500;
+    --accent3: #e8763a;
+    --accent4: #fde8d8;
+    --blue: #1a3a6b;
+    --blue2: #2a5298;
+    --blue3: #d0dff5;
+    --success: #1a5c35;
+    --success-bg: #edf7f1;
+    --danger: #a01c1c;
+    --danger-bg: #fdf0f0;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--ink); font-family:'Mulish',sans-serif; font-size:15px; line-height:1.65; }
+
+  /* NAV */
+  .nav {
+    position:sticky; top:0; background:#fff;
+    border-bottom:var(--rule);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 32px; height:50px; z-index:100;
+  }
+  .nav-brand { font-family:'Cormorant Garamond',serif; font-size:1rem; letter-spacing:0.01em; }
+  .nav-right  { display:flex; align-items:center; gap:10px; }
+  .nav-pills  { display:flex; gap:4px; }
+  .nav-pill {
+    width:24px; height:24px; border-radius:50%;
+    border:1.5px solid var(--light); background:transparent;
+    cursor:pointer; font-size:0.64rem;
+    font-family:'JetBrains Mono',monospace; color:var(--soft);
+    transition:all 0.2s; display:flex; align-items:center; justify-content:center;
+  }
+  .nav-pill:hover  { border-color:var(--accent2); color:var(--accent2); }
+  .nav-pill.active { background:var(--accent); border-color:var(--accent); color:white; }
+  .nav-counter { font-family:'JetBrains Mono',monospace; font-size:0.66rem; color:#bbb; min-width:38px; }
+
+  /* PROGRESS */
+  .progress-wrap { height:2px; background:var(--light); position:sticky; top:50px; z-index:99; }
+  #progress-bar  { height:100%; background:var(--accent2); transition:width 0.4s ease; width:0%; }
+
+  /* SLIDES */
+  .slide { display:none; min-height:80vh; padding:42px 60px 70px; flex-direction:column; justify-content:center; animation:fadeUp 0.4s ease both; }
+  .slide.active { display:flex; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:translateY(0);} }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    position:sticky; bottom:0; background:#fff; border-top:var(--rule);
+    display:flex; align-items:center; justify-content:flex-end;
+    gap:10px; padding:9px 32px; z-index:100;
+  }
+  .btn { padding:8px 20px; border:1.5px solid var(--ink); background:transparent; color:var(--ink); font-family:'Mulish',sans-serif; font-size:0.8rem; font-weight:500; cursor:pointer; transition:all 0.2s; letter-spacing:0.02em; }
+  .btn:hover { background:var(--ink); color:white; }
+  .btn:disabled { opacity:0.25; cursor:not-allowed; }
+  .btn:disabled:hover { background:transparent; color:var(--ink); }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:white; }
+  .btn.primary:hover { background:var(--accent2); }
+
+  /* TYPOGRAPHY */
+  .slide-label { font-family:'JetBrains Mono',monospace; font-size:0.66rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent2); margin-bottom:12px; }
+  h2 { font-family:'Cormorant Garamond',serif; font-size:clamp(1.7rem,3.2vw,2.8rem); line-height:1.12; margin-bottom:14px; font-weight:600; }
+  h2 em { font-style:italic; color:var(--accent2); }
+  h3 { font-family:'Mulish',sans-serif; font-size:0.96rem; font-weight:600; margin-bottom:7px; color:var(--ink); }
+  p { color:var(--mid); max-width:700px; margin-bottom:9px; }
+  .lead { font-size:1.02rem; color:var(--mid); max-width:680px; font-weight:300; line-height:1.75; }
+  .rule { border:none; border-top:var(--rule); margin:22px 0; }
+  code { font-family:'JetBrains Mono',monospace; font-size:0.8rem; background:var(--accent4); padding:1px 5px; color:var(--accent); border-radius:1px; }
+
+  /* COVER */
+  #slide-1 { position:relative; overflow:hidden; }
+  .cover-dots { position:absolute; top:0; left:0; right:0; bottom:0; background-image:radial-gradient(circle, var(--light) 1px, transparent 1px); background-size:28px 28px; opacity:0.5; }
+  .cover-content { position:relative; z-index:1; }
+  .cover-tag { display:inline-block; border:1.5px solid var(--accent2); padding:4px 12px; font-family:'JetBrains Mono',monospace; font-size:0.64rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent2); margin-bottom:20px; }
+  .cover-h1 { font-family:'Cormorant Garamond',serif; font-size:clamp(2.4rem,5.5vw,4.8rem); line-height:1.0; letter-spacing:-0.02em; margin-bottom:5px; font-weight:600; }
+  .cover-h1 em { font-style:italic; color:var(--accent2); }
+  .cover-sub { font-size:1rem; color:var(--mid); font-weight:300; max-width:560px; margin-top:14px; line-height:1.75; }
+  .cover-meta { margin-top:32px; display:flex; gap:32px; flex-wrap:wrap; }
+  .cover-meta-item { font-family:'JetBrains Mono',monospace; font-size:0.64rem; color:var(--soft); letter-spacing:0.05em; }
+  .cover-meta-item strong { display:block; font-size:0.95rem; color:var(--ink); font-family:'Cormorant Garamond',serif; font-weight:600; letter-spacing:0; }
+
+  /* GRID */
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:32px; margin:18px 0; }
+  .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin:18px 0; }
+
+  /* CALLOUT */
+  .callout { border-left:3px solid var(--accent2); padding:13px 17px; background:var(--accent4); max-width:740px; margin:14px 0; }
+  .callout p { margin:0; color:var(--ink); font-size:0.9rem; }
+  .callout.blue    { border-color:var(--blue2);    background:var(--blue3); }
+  .callout.blue p  { color:var(--blue); }
+  .callout.success { border-color:var(--success);  background:var(--success-bg); }
+  .callout.success p { color:var(--success); }
+  .callout.danger  { border-color:var(--danger);   background:var(--danger-bg); }
+  .callout.danger p { color:var(--danger); }
+
+  /* TABLE */
+  table { width:100%; border-collapse:collapse; font-size:0.84rem; margin:12px 0; }
+  th { border-bottom:2px solid var(--ink); padding:7px 10px; text-align:left; font-family:'JetBrains Mono',monospace; font-size:0.64rem; letter-spacing:0.07em; text-transform:uppercase; color:var(--soft); }
+  td { border-bottom:var(--rule); padding:7px 10px; color:var(--mid); vertical-align:top; }
+  td:first-child { font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:var(--accent2); font-weight:500; }
+  tr:hover td { background:#fdf5ef; }
+
+  /* METRIC CARDS */
+  .metric-card { border:var(--rule); padding:14px; text-align:center; }
+  .metric-name { font-family:'JetBrains Mono',monospace; font-size:0.64rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--soft); margin-bottom:7px; }
+  .metric-val  { font-family:'Cormorant Garamond',serif; font-size:1.9rem; color:var(--accent); line-height:1; font-weight:600; }
+  .metric-desc { font-size:0.76rem; color:var(--soft); margin-top:5px; }
+
+  /* EXPLAIN BLOCKS */
+  .explain-block { display:flex; gap:13px; margin-bottom:15px; align-items:flex-start; }
+  .explain-step  { flex-shrink:0; width:28px; height:28px; background:var(--accent); color:white; font-family:'JetBrains Mono',monospace; font-size:0.7rem; font-weight:500; display:flex; align-items:center; justify-content:center; margin-top:2px; }
+  .explain-formula { background:#f4f4f4; color:#2a2a2a; border:1px solid var(--light); border-left:3px solid var(--accent2); font-family:'JetBrains Mono',monospace; font-size:0.82rem; padding:12px 16px; margin:8px 0; line-height:1.8; }
+
+  /* LISTA */
+  ul.styled { list-style:none; padding:0; }
+  ul.styled li { padding:5px 0 5px 13px; border-bottom:var(--rule); font-size:0.84rem; color:var(--mid); position:relative; }
+  ul.styled li:last-child { border-bottom:none; }
+  ul.styled li::before { content:'—'; position:absolute; left:0; color:#ccc; }
+
+  /* SPLIT BAR */
+  .split-bar { height:40px; display:flex; border-radius:2px; overflow:hidden; width:100%; }
+  .split-train { background:var(--blue2); display:flex; align-items:center; justify-content:center; color:white; font-family:'JetBrains Mono',monospace; font-size:0.74rem; font-weight:500; transition:width 0.35s ease; }
+  .split-test  { background:var(--accent2); display:flex; align-items:center; justify-content:center; color:white; font-family:'JetBrains Mono',monospace; font-size:0.74rem; font-weight:500; transition:width 0.35s ease; }
+
+  /* DOTS */
+  .dots-wrap { display:flex; flex-wrap:wrap; gap:5px; margin:12px 0; max-width:520px; }
+  .dot { width:18px; height:18px; border-radius:2px; display:inline-block; }
+  .dot.train { background:var(--blue2); }
+  .dot.test  { background:var(--accent2); }
+
+  /* ANALOGY BOXES */
+  .anology-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin:18px 0; }
+  .anology-box { border:var(--rule); padding:20px; border-top:3px solid var(--accent2); }
+  .anology-box.good { border-top-color:var(--success); }
+  .anology-box.bad  { border-top-color:var(--danger); }
+
+  /* LEGEND */
+  .legend-item { display:flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--mid); margin-bottom:5px; }
+  .legend-line { width:24px; height:3px; border-radius:1px; flex-shrink:0; }
+
+  /* CANVAS */
+  .canvas-wrap { border:var(--rule); padding:8px; display:inline-block; background:#fafafa; }
+
+  /* POLY BUTTONS */
+  .poly-btn { padding:5px 14px; border:1.5px solid var(--light); background:transparent; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:0.74rem; color:var(--mid); transition:all 0.2s; }
+  .poly-btn:hover  { border-color:var(--accent2); color:var(--accent2); }
+  .poly-btn.active { background:var(--accent); border-color:var(--accent); color:white; }
+
+  /* STEP LABEL */
+  .step-num { font-family:'JetBrains Mono',monospace; font-size:0.64rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent2); margin-bottom:6px; }
+
+  /* SUP CARD */
+  .sup-card { border:var(--rule); border-top:3px solid var(--accent2); padding:16px; }
+
+  /* TAG BADGE */
+  .badge { display:inline-block; font-family:'JetBrains Mono',monospace; font-size:0.64rem; letter-spacing:0.06em; text-transform:uppercase; padding:2px 8px; border:1px solid; }
+  .badge-ok  { color:var(--success); border-color:var(--success); background:var(--success-bg); }
+  .badge-err { color:var(--danger);  border-color:var(--danger);  background:var(--danger-bg);  }
+  .badge-mid { color:var(--accent2); border-color:var(--accent3); background:var(--accent4); }
+
+  @media(max-width:680px){
+    .slide { padding:24px 16px 66px; }
+    .grid-2, .grid-3, .anology-grid { grid-template-columns:1fr; }
+    .nav-pills { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <span class="nav-brand">Train &amp; Test Split</span>
+  <div class="nav-right">
+    <div class="nav-pills" id="navPills"></div>
+    <span class="nav-counter" id="navCounter">1 / 8</span>
+  </div>
+</nav>
+<div class="progress-wrap"><div id="progress-bar"></div></div>
+
+<!-- ══════════════════════════ SLIDES ══════════════════════════ -->
+
+<!-- SLIDE 1: PORTADA -->
+<section class="slide active" id="slide-1">
+  <div class="cover-dots"></div>
+  <div class="cover-content">
+    <div class="cover-tag">Validacion de Modelos &mdash; Guia Didactica</div>
+    <div class="cover-h1">Por que dividir<br>los <em>datos</em></div>
+    <p class="cover-sub">La separacion Train / Test es la salvaguarda mas fundamental del aprendizaje estadistico. Sin ella, cualquier metrica de ajuste reportada es, en el mejor caso, optimista y, en el peor, completamente enganosa.</p>
+    <div class="cover-meta">
+      <div class="cover-meta-item">TEMA<strong>Validacion de Modelos</strong></div>
+      <div class="cover-meta-item">NIVEL<strong>Introductorio</strong></div>
+      <div class="cover-meta-item">SECCIONES<strong>8 diapositivas</strong></div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 2: EL PROBLEMA FUNDAMENTAL -->
+<section class="slide" id="slide-2">
+  <div class="slide-label">01 &mdash; El Problema</div>
+  <h2>El modelo que <em>hace trampa</em></h2>
+  <p class="lead">Imagina que usas los <strong>mismos datos</strong> para entrenar el modelo y para medir su error. El resultado parece excelente — pero es una ilusion.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <div class="explain-block" style="margin-top:4px">
+        <div class="explain-step" style="background:var(--danger)">A</div>
+        <div>
+          <h3>El modelo memoriza</h3>
+          <p style="font-size:0.86rem">Si evaluas en los mismos datos con los que entrenas, el modelo aprende de memoria cada observacion — incluyendo el <strong>ruido aleatorio</strong>. Sobre esos datos parece perfecto.</p>
+        </div>
+      </div>
+      <div class="explain-block">
+        <div class="explain-step" style="background:var(--danger)">B</div>
+        <div>
+          <h3>Las metricas mienten</h3>
+          <p style="font-size:0.86rem">El RMSE calculado sobre los datos de entrenamiento es <strong>optimista por construccion</strong>. No dice nada sobre como funcionara el modelo con datos nuevos.</p>
+        </div>
+      </div>
+      <div class="explain-block">
+        <div class="explain-step" style="background:var(--success)">C</div>
+        <div>
+          <h3>La solucion: datos nunca vistos</h3>
+          <p style="font-size:0.86rem">Separar un conjunto de <strong>test</strong> que el modelo jamas ve durante el entrenamiento. El error sobre ese conjunto es una estimacion honesta del error real en produccion.</p>
+        </div>
+      </div>
+      <div class="callout danger" style="margin-top:4px">
+        <p><strong>Regla de oro:</strong> el modelo nunca debe ver los datos de test antes de la evaluacion final. Si los ve, la evaluacion pierde todo valor cientifico.</p>
+      </div>
+    </div>
+    <div>
+      <h3>La analogia del examen</h3>
+      <div class="anology-grid" style="margin-top:10px">
+        <div class="anology-box bad">
+          <div class="step-num" style="color:var(--danger); margin-bottom:10px">Mala practica</div>
+          <h3>Memorizar las respuestas</h3>
+          <p style="font-size:0.84rem; margin-top:8px">El estudiante estudia con el examen resuelto en mano. Obtiene 10/10 en ese examen, pero falla en cualquier pregunta nueva. No aprendio — memorizo.</p>
+          <div style="margin-top:10px">
+            <span class="badge badge-err">Train error: 0.00</span>
+            <span class="badge badge-err" style="margin-left:6px">Test error: alto</span>
+          </div>
+        </div>
+        <div class="anology-box good">
+          <div class="step-num" style="color:var(--success); margin-bottom:10px">Buena practica</div>
+          <h3>Entender el concepto</h3>
+          <p style="font-size:0.84rem; margin-top:8px">El estudiante practica con ejercicios distintos al examen final. Su calificacion refleja comprension genuina, no memoria de los ejemplos vistos.</p>
+          <div style="margin-top:10px">
+            <span class="badge badge-ok">Train error: bajo</span>
+            <span class="badge badge-ok" style="margin-left:6px">Test error: bajo</span>
+          </div>
+        </div>
+      </div>
+      <div class="callout blue" style="margin-top:10px">
+        <p>Los <strong>datos de train</strong> son los ejercicios de practica. Los <strong>datos de test</strong> son el examen final sorpresa. El modelo solo aprende de los primeros — jamas de los segundos.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 3: OVERFITTING -->
+<section class="slide" id="slide-3">
+  <div class="slide-label">02 &mdash; Sobreajuste</div>
+  <h2>Overfitting &mdash; <em>el enemigo silencioso</em></h2>
+  <p class="lead">Un modelo puede ajustarse perfectamente a los datos de entrenamiento y fracasar completamente con datos nuevos. Ese fenomeno se denomina <strong>sobreajuste</strong>.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>Visualizacion interactiva</h3>
+      <p style="font-size:0.84rem; margin-bottom:10px">Selecciona la complejidad del modelo y observa como cambia el ajuste sobre los mismos datos:</p>
+      <div style="display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap">
+        <button class="poly-btn active" onclick="setDegree(1,this)">Lineal (grado 1)</button>
+        <button class="poly-btn"        onclick="setDegree(3,this)">Grado 3</button>
+        <button class="poly-btn"        onclick="setDegree(8,this)">Grado 8</button>
+        <button class="poly-btn"        onclick="setDegree(14,this)">Grado 14</button>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="overfit-canvas" width="400" height="280"></canvas>
+      </div>
+      <div id="overfit-verdict" style="margin-top:10px; border:var(--rule); padding:10px 14px; font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:var(--mid)">
+        Selecciona un grado para ver el diagnostico.
+      </div>
+    </div>
+    <div>
+      <h3>Los tres escenarios posibles</h3>
+      <div class="sup-card" style="margin-bottom:12px; border-top-color:var(--danger)">
+        <div class="step-num" style="color:var(--danger)">Escenario A &mdash; Sobreajuste (Overfitting)</div>
+        <p style="font-size:0.84rem; margin-top:6px">Modelo demasiado complejo. Aprende el ruido especifico de los datos de entrenamiento. El error en train es casi cero; en test, es catastrofico.</p>
+        <div style="display:flex; gap:14px; margin-top:10px">
+          <span class="badge badge-ok">RMSE Train: 1.2</span>
+          <span class="badge badge-err">RMSE Test: 8.7</span>
+        </div>
+      </div>
+      <div class="sup-card" style="margin-bottom:12px; border-top-color:var(--success)">
+        <div class="step-num" style="color:var(--success)">Escenario B &mdash; Buen Ajuste</div>
+        <p style="font-size:0.84rem; margin-top:6px">Modelo de complejidad apropiada. Captura el patron real sin aprender el ruido. Los errores en train y test son similares entre si.</p>
+        <div style="display:flex; gap:14px; margin-top:10px">
+          <span class="badge badge-ok">RMSE Train: 3.1</span>
+          <span class="badge badge-ok">RMSE Test: 3.4</span>
+        </div>
+      </div>
+      <div class="sup-card" style="border-top-color:var(--accent2)">
+        <div class="step-num" style="color:var(--accent2)">Escenario C &mdash; Subajuste (Underfitting)</div>
+        <p style="font-size:0.84rem; margin-top:6px">Modelo demasiado simple. No logra capturar el patron subyacente. Mal desempeno tanto en train como en test.</p>
+        <div style="display:flex; gap:14px; margin-top:10px">
+          <span class="badge badge-err">RMSE Train: 9.2</span>
+          <span class="badge badge-err">RMSE Test: 9.8</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 4: COMO FUNCIONA EL SPLIT -->
+<section class="slide" id="slide-4">
+  <div class="slide-label">03 &mdash; La Division</div>
+  <h2>Como funciona el <em>Train / Test Split</em></h2>
+  <p class="lead">Los datos se dividen aleatoriamente en dos grupos <strong>antes</strong> de ajustar cualquier modelo. Esta aleatoriedad y este orden son esenciales.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>Ajusta la proporcion</h3>
+      <p style="font-size:0.84rem; margin-bottom:14px">Mueve el control para ver como cambia la distribucion de las observaciones:</p>
+
+      <label style="font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--mid)">PORCENTAJE DESTINADO A ENTRENAMIENTO</label>
+      <div style="display:flex; align-items:center; gap:12px; margin:8px 0 14px">
+        <input type="range" id="split-slider" min="50" max="90" step="5" value="80"
+               style="width:200px; accent-color:var(--blue2)">
+        <span id="split-pct" style="font-family:'JetBrains Mono',monospace; font-size:1.1rem; color:var(--blue2); font-weight:500">80%</span>
+      </div>
+
+      <div class="split-bar" style="margin-bottom:6px">
+        <div class="split-train" id="split-train-bar" style="width:80%">TRAIN</div>
+        <div class="split-test"  id="split-test-bar"  style="width:20%">TEST</div>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:18px">
+        <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--blue2)" id="train-lbl">Entrenamiento: 80%</span>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--accent2)" id="test-lbl">Evaluacion: 20%</span>
+      </div>
+
+      <h3>Visualizacion de observaciones (n = 50)</h3>
+      <p style="font-size:0.82rem; margin-bottom:8px">Cada cuadro representa una observacion:</p>
+      <div class="dots-wrap" id="dots-container"></div>
+      <div style="display:flex; gap:18px; margin-top:8px">
+        <div style="display:flex; align-items:center; gap:7px">
+          <div class="dot train"></div>
+          <span style="font-size:0.78rem; font-family:'JetBrains Mono',monospace; color:var(--blue2)">Train</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:7px">
+          <div class="dot test"></div>
+          <span style="font-size:0.78rem; font-family:'JetBrains Mono',monospace; color:var(--accent2)">Test</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3>Proporciones tipicas en la practica</h3>
+      <table style="margin-top:10px">
+        <thead><tr><th>Split</th><th>Train</th><th>Test</th><th>Cuando usarlo</th></tr></thead>
+        <tbody>
+          <tr><td>80 / 20</td><td>80%</td><td>20%</td><td>El mas comun. Datasets medianos y grandes.</td></tr>
+          <tr><td>70 / 30</td><td>70%</td><td>30%</td><td>Cuando se necesita mas confianza en la evaluacion.</td></tr>
+          <tr><td>60 / 40</td><td>60%</td><td>40%</td><td>Datasets pequenos o modelos simples.</td></tr>
+          <tr><td>90 / 10</td><td>90%</td><td>10%</td><td>Datasets muy grandes donde el 10% es suficiente.</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top:22px">El proceso paso a paso</h3>
+      <div class="explain-block" style="margin-top:12px">
+        <div class="explain-step">1</div>
+        <div><p style="margin:0; font-size:0.85rem"><strong>Aleatorizar.</strong> Mezclar todas las observaciones aleatoriamente. Usar una semilla fija garantiza reproducibilidad.</p></div>
+      </div>
+      <div class="explain-block">
+        <div class="explain-step">2</div>
+        <div><p style="margin:0; font-size:0.85rem"><strong>Separar.</strong> Asignar el X% inicial a train y el resto a test. Nunca mezclar los conjuntos despues.</p></div>
+      </div>
+      <div class="explain-block">
+        <div class="explain-step">3</div>
+        <div><p style="margin:0; font-size:0.85rem"><strong>Entrenar.</strong> Ajustar el modelo exclusivamente con los datos de train. El test permanece intocable.</p></div>
+      </div>
+      <div class="explain-block">
+        <div class="explain-step">4</div>
+        <div><p style="margin:0; font-size:0.85rem"><strong>Evaluar.</strong> Calcular las metricas sobre el conjunto de test. Este numero es el que se reporta.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 5: SEMILLA Y REPRODUCIBILIDAD -->
+<section class="slide" id="slide-5">
+  <div class="slide-label">04 &mdash; Semilla y Reproducibilidad</div>
+  <h2><em>test_size</em> y <em>random_state</em></h2>
+  <p class="lead">La particion train/test es aleatoria. Sin semilla fija, dos estudiantes que corran el mismo codigo obtendran particiones distintas &mdash; y en consecuencia estimaciones y pronosticos distintos.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>Los dos parametros clave</h3>
+      <div style="background:#f4f4f4; border:1px solid var(--light); border-left:3px solid var(--blue2); font-family:'JetBrains Mono',monospace; font-size:0.76rem; padding:14px 18px; line-height:2; margin:10px 0">
+        X_train, X_test, y_train, y_test = train_test_split(<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;X, y,<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;test_size=<span style="color:#1a5c35">0.20</span>,&nbsp;&nbsp;<span style="color:#888; font-style:italic"># 20% test, 80% train</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;random_state=<span style="color:#1a5c35">42</span>&nbsp;&nbsp;&nbsp;<span style="color:#888; font-style:italic"># semilla fija</span><br>
+        )
+      </div>
+      <div class="explain-block" style="margin-top:14px">
+        <div class="explain-step">1</div>
+        <div>
+          <h3 style="margin-bottom:3px">test_size = 0.20</h3>
+          <p style="font-size:0.83rem; margin:0">Define el porcentaje de la muestra que va a test. Con <code>test_size=0.20</code> y n=30 observaciones: <strong>6 van a test</strong> y 24 a train.</p>
+        </div>
+      </div>
+      <div class="explain-block">
+        <div class="explain-step">2</div>
+        <div>
+          <h3 style="margin-bottom:3px">random_state = 42</h3>
+          <p style="font-size:0.83rem; margin:0">Es la semilla (SEED) que controla la aleatoriedad de la particion. El numero puede ser cualquiera &mdash; lo importante es fijarlo para que todos obtengan la misma division.</p>
+        </div>
+      </div>
+      <div class="callout" style="margin-top:12px">
+        <p><strong>Sin semilla:</strong> si corres el codigo varias veces, o si otro estudiante lo corre en su maquina, la particion cambia. Cambia el train, cambia el modelo estimado y cambian los pronosticos. <strong>La semilla garantiza reproducibilidad.</strong></p>
+      </div>
+    </div>
+    <div>
+      <h3>Simulacion &mdash; n = 30 &nbsp;|&nbsp; test = 20% (6 obs)</h3>
+      <p style="font-size:0.82rem; margin-bottom:12px; color:var(--mid)">Los cuadros naranjas son las observaciones que van a <strong>test</strong>. Los azules van a <strong>train</strong>. Pulsa los botones para ver la diferencia.</p>
+      <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:14px">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--blue2); letter-spacing:0.08em; margin-bottom:5px">ESTUDIANTE A</div>
+          <div id="seed-obs-a" style="display:flex; flex-wrap:wrap; gap:3px; margin-bottom:4px"></div>
+          <div id="seed-list-a" style="font-family:'JetBrains Mono',monospace; font-size:0.64rem; color:var(--accent2)"></div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--blue2); letter-spacing:0.08em; margin-bottom:5px">ESTUDIANTE B</div>
+          <div id="seed-obs-b" style="display:flex; flex-wrap:wrap; gap:3px; margin-bottom:4px"></div>
+          <div id="seed-list-b" style="font-family:'JetBrains Mono',monospace; font-size:0.64rem; color:var(--accent2)"></div>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <button class="btn" onclick="simNoSeed()" style="font-size:0.76rem; padding:7px 16px">Ejecutar sin semilla</button>
+        <button class="btn primary" onclick="simWithSeed()" style="font-size:0.76rem; padding:7px 16px">Fijar semilla = 42</button>
+      </div>
+      <div id="seed-msg" style="margin-top:10px; font-size:0.78rem; font-family:'JetBrains Mono',monospace; min-height:1.4em"></div>
+      <div style="display:flex; gap:14px; margin-top:10px">
+        <div style="display:flex; align-items:center; gap:6px">
+          <div style="width:13px; height:13px; background:var(--blue2); border-radius:2px"></div>
+          <span style="font-size:0.75rem; font-family:'JetBrains Mono',monospace; color:var(--blue2)">Train</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px">
+          <div style="width:13px; height:13px; background:var(--accent2); border-radius:2px"></div>
+          <span style="font-size:0.75rem; font-family:'JetBrains Mono',monospace; color:var(--accent2)">Test</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 6: GENERALIZACION -->
+<section class="slide" id="slide-6">
+  <div class="slide-label">04 &mdash; Generalizacion</div>
+  <h2>El objetivo real: <em>generalizar</em></h2>
+  <p class="lead">Un modelo util no es el que mejor se ajusta a los datos que ya tiene — es el que mejor predice datos que aun no ha visto. Esa propiedad se llama <strong>generalizacion</strong>.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>Que es la generalizacion</h3>
+      <p style="font-size:0.86rem">La <strong>capacidad de generalizacion</strong> es la habilidad del modelo de producir predicciones precisas sobre observaciones nuevas, no sobre las que lo entrenaron. Es la diferencia entre un modelo util y uno que solo funciona en el laboratorio.</p>
+
+      <div class="callout success" style="margin-top:12px">
+        <p><strong>Generalizacion alta:</strong> el modelo aprendio el patron subyacente. Funciona bien tanto en datos conocidos como en datos completamente nuevos.</p>
+      </div>
+      <div class="callout danger" style="margin-top:10px">
+        <p><strong>Generalizacion baja (overfitting):</strong> el modelo memorizo el ruido. Desempeno excelente en entrenamiento, desastroso en produccion.</p>
+      </div>
+
+      <h3 style="margin-top:20px">La trampa del RMSE en entrenamiento</h3>
+      <table>
+        <thead><tr><th>RMSE Train</th><th>RMSE Test</th><th>Diagnostico</th></tr></thead>
+        <tbody>
+          <tr>
+            <td style="color:var(--success)">1.8</td>
+            <td style="color:var(--danger)">9.5</td>
+            <td>Sobreajuste severo &mdash; no generaliza</td>
+          </tr>
+          <tr>
+            <td style="color:var(--success)">3.1</td>
+            <td style="color:var(--success)">3.4</td>
+            <td>Buen ajuste &mdash; generaliza correctamente</td>
+          </tr>
+          <tr>
+            <td style="color:var(--danger)">9.1</td>
+            <td style="color:var(--danger)">9.8</td>
+            <td>Subajuste &mdash; modelo demasiado simple</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="font-size:0.8rem; color:var(--soft); margin-top:6px">Señal clave: si RMSE train es mucho menor que RMSE test, el modelo no generaliza (overfitting).</p>
+    </div>
+    <div>
+      <h3>Error en funcion de la complejidad</h3>
+      <div class="canvas-wrap" style="margin-top:8px">
+        <canvas id="bias-variance-canvas" width="380" height="260"></canvas>
+      </div>
+      <div style="margin-top:12px">
+        <div class="legend-item"><div class="legend-line" style="background:var(--blue2)"></div>Error en Train (decrece con la complejidad)</div>
+        <div class="legend-item"><div class="legend-line" style="background:var(--accent2)"></div>Error en Test (tiene un minimo optimo)</div>
+        <div class="legend-item"><div class="legend-line" style="background:#aaa; border-top:2px dashed #aaa; height:0"></div>Punto optimo de complejidad</div>
+      </div>
+      <div class="callout blue" style="margin-top:14px">
+        <p><strong>Trade-off sesgo-varianza:</strong> poca complejidad produce alto sesgo (underfitting). Demasiada complejidad produce alta varianza (overfitting). El conjunto de test es el unico instrumento que revela donde esta el equilibrio.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 6: CONSECUENCIAS -->
+<!-- SLIDE 7: EN PYTHON -->
+<section class="slide" id="slide-7">
+  <div class="slide-label">06 &mdash; Implementacion</div>
+  <h2>Como hacerlo en <em>Python</em></h2>
+  <p class="lead">La implementacion tecnica es directa. Lo critico es comprender el orden correcto de las operaciones y los errores que invalidan la evaluacion.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>Codigo con scikit-learn</h3>
+      <div style="background:#f4f4f4; border:1px solid var(--light); border-left:3px solid var(--blue2); font-family:'JetBrains Mono',monospace; font-size:0.76rem; padding:16px 18px; line-height:1.9; margin:12px 0; overflow-x:auto">
+        <span style="color:#888; font-style:italic"># 1. Importar</span><br>
+        <span style="color:#7c3000; font-weight:600">from</span> sklearn.model_selection <span style="color:#7c3000; font-weight:600">import</span> train_test_split<br>
+        <span style="color:#7c3000; font-weight:600">from</span> sklearn.linear_model <span style="color:#7c3000; font-weight:600">import</span> LinearRegression<br><br>
+        <span style="color:#888; font-style:italic"># 2. Dividir &mdash; ANTES de cualquier ajuste</span><br>
+        X_train, X_test, y_train, y_test = train_test_split(<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;X, y,<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;test_size=<span style="color:#1a5c35">0.20</span>,<span style="color:#888; font-style:italic"> &nbsp;# 20% para test</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;random_state=<span style="color:#1a5c35">42</span><span style="color:#888; font-style:italic">  # semilla fija</span><br>
+        )<br><br>
+        <span style="color:#888; font-style:italic"># 3. Entrenar SOLO con train</span><br>
+        modelo = LinearRegression()<br>
+        modelo.fit(X_train, y_train)<br><br>
+        <span style="color:#888; font-style:italic"># 4. Evaluar SOLO con test</span><br>
+        y_pred = modelo.predict(X_test)<br>
+        rmse_test = np.sqrt(mean_squared_error(y_test, y_pred))<br>
+        <span style="color:#b04500">print</span>(<span style="color:#1a3a6b">f"RMSE en TEST: {rmse_test:.4f}"</span>)
+      </div>
+      <div class="callout" style="margin-top:6px">
+        <p><strong>random_state = 42</strong> garantiza que siempre obtengas la misma division. Es fundamental para la reproducibilidad del analisis.</p>
+      </div>
+    </div>
+    <div>
+      <h3>Errores comunes que invalidan la evaluacion</h3>
+      <table style="margin-top:10px">
+        <thead><tr><th>Error</th><th>Consecuencia</th></tr></thead>
+        <tbody>
+          <tr><td>Escalar antes de dividir</td><td>Fuga de datos. La media y desviacion del test contaminan el escalado del train.</td></tr>
+          <tr><td>Usar test para seleccionar variables</td><td>El test pierde independencia. Las metricas son optimistas por construccion.</td></tr>
+          <tr><td>No fijar random_state</td><td>Resultados irreproducibles. El RMSE cambia en cada ejecucion del codigo.</td></tr>
+          <tr><td>No estratificar en clasificacion</td><td>Clases desbalanceadas en train o test. Modelo y evaluacion sesgados.</td></tr>
+          <tr><td>Mirar el test multiples veces</td><td>El test se convierte en un tercer conjunto de entrenamiento implicitamente.</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top:20px">El orden correcto de operaciones</h3>
+      <div class="explain-formula" style="font-size:0.82rem; line-height:2.4">
+        1. Dividir train / test<br>
+        2. Escalar usando <em>solo</em> train &rarr; aplicar a test<br>
+        3. Ajustar modelo en train<br>
+        4. Evaluar una sola vez en test<br>
+        5. Reportar
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 8: RESUMEN -->
+<section class="slide" id="slide-8">
+  <div class="slide-label">07 &mdash; Resumen</div>
+  <h2>Las cinco razones <em>fundamentales</em></h2>
+  <p class="lead">Por que dividir los datos en train y test no es una convencion opcional — es la base de cualquier evaluacion estadistica honesta y reproducible.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <div class="explain-block" style="margin-top:8px">
+        <div class="explain-step" style="background:var(--blue2)">I</div>
+        <div>
+          <h3>Estimar el error real</h3>
+          <p style="font-size:0.85rem; margin:0">El error en datos de entrenamiento subestima sistematicamente el error real. El test provee una estimacion insesgada del desempeno sobre datos nuevos.</p>
+        </div>
+      </div>
+      <div class="explain-block">
+        <div class="explain-step" style="background:var(--blue2)">II</div>
+        <div>
+          <h3>Detectar sobreajuste</h3>
+          <p style="font-size:0.85rem; margin:0">Si RMSE train es mucho menor que RMSE test, el modelo esta sobreajustado. Sin un conjunto de test, este problema es completamente invisible.</p>
+        </div>
+      </div>
+      <div class="explain-block">
+        <div class="explain-step" style="background:var(--blue2)">III</div>
+        <div>
+          <h3>Comparar modelos honestamente</h3>
+          <p style="font-size:0.85rem; margin:0">Un conjunto de test fijo e intocable es el unico terreno neutral para comparar dos modelos o dos especificaciones distintas.</p>
+        </div>
+      </div>
+      <div class="explain-block">
+        <div class="explain-step" style="background:var(--blue2)">IV</div>
+        <div>
+          <h3>Simular el entorno real</h3>
+          <p style="font-size:0.85rem; margin:0">El test replica lo que ocurrira cuando el modelo reciba datos reales que nunca ha visto. Es el ensayo antes del despliegue en produccion.</p>
+        </div>
+      </div>
+      <div class="explain-block">
+        <div class="explain-step" style="background:var(--blue2)">V</div>
+        <div>
+          <h3>Reproducibilidad cientifica</h3>
+          <p style="font-size:0.85rem; margin:0">Fijar la semilla aleatoria permite que otros investigadores reproduzcan exactamente los mismos resultados con el mismo conjunto de datos.</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin-bottom:14px">Estructura del split</h3>
+      <div style="border:var(--rule); padding:18px; background:#fafafa; font-family:'JetBrains Mono',monospace; font-size:0.74rem; line-height:2.4; color:var(--mid)">
+        <div style="color:var(--ink); font-weight:600; margin-bottom:8px">Dataset completo — n observaciones</div>
+        <div style="padding-left:18px; border-left:2px solid var(--light)">
+          <div style="color:var(--blue2)">Train (70&ndash;90%)</div>
+          <div style="padding-left:18px; border-left:2px solid var(--light)">
+            <div>&mdash; Ajustar coeficientes</div>
+            <div>&mdash; Seleccion de variables</div>
+            <div>&mdash; Ajuste de hiperparametros (via CV)</div>
+          </div>
+          <div style="color:var(--accent2); margin-top:6px">Test (10&ndash;30%)</div>
+          <div style="padding-left:18px; border-left:2px solid var(--light)">
+            <div>&mdash; Evaluacion final, una sola vez</div>
+            <div>&mdash; Reporte de metricas</div>
+            <div>&mdash; Intocable hasta el final</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout success" style="margin-top:16px">
+        <p><strong>Regla practica:</strong> nunca uses los datos de test mas de una vez. Cada vez que ajustas algo despues de mirar el test, lo estas convirtiendo implicitamente en otro conjunto de entrenamiento.</p>
+      </div>
+
+      <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:10px">
+        <div class="metric-card">
+          <div class="metric-name">Split tipico</div>
+          <div class="metric-val">80/20</div>
+          <div class="metric-desc">Train / Test</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-name">Señal de alerta</div>
+          <div class="metric-val" style="font-size:1.15rem; color:var(--danger)">Train &gg; Test</div>
+          <div class="metric-desc">Indica sobreajuste</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="btn" id="btnPrev" onclick="changSlide(-1)" disabled>&#8592; Anterior</button>
+  <button class="btn primary" id="btnNext" onclick="changSlide(1)">Siguiente &#8594;</button>
+</div>
+
+<!-- ═══════════════════════ JAVASCRIPT ═══════════════════════ -->
+<script>
+// ── NAVEGACION ───────────────────────────────────────────────
+var current = 1, total = 8;
+
+function buildNav() {
+  var pills = document.getElementById('navPills');
+  pills.innerHTML = '';
+  for (var i = 1; i <= total; i++) {
+    var b = document.createElement('button');
+    b.className = 'nav-pill' + (i === current ? ' active' : '');
+    b.textContent = i;
+    b.onclick = (function(n){ return function(){ goTo(n); }; })(i);
+    pills.appendChild(b);
+  }
+}
+
+function goTo(n) {
+  document.getElementById('slide-' + current).classList.remove('active');
+  current = n;
+  document.getElementById('slide-' + current).classList.add('active');
+  document.getElementById('navCounter').textContent = current + ' / ' + total;
+  document.getElementById('progress-bar').style.width = ((current / total) * 100) + '%';
+  document.getElementById('btnPrev').disabled = current === 1;
+  document.getElementById('btnNext').disabled = current === total;
+  buildNav();
+  onSlideEnter(current);
+}
+
+function changSlide(dir) { goTo(Math.min(Math.max(current + dir, 1), total)); }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') changSlide(1);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   changSlide(-1);
+});
+
+function onSlideEnter(n) {
+  if (n === 3 && !overfitInited) initOverfit();
+  if (n === 4 && !splitInited)   initSplit();
+  if (n === 5 && !seedSimInited) { simNoSeed(); seedSimInited = true; }
+  if (n === 6 && !bvInited)      initBV();
+}
+
+buildNav();
+document.getElementById('progress-bar').style.width = ((1 / total) * 100) + '%';
+
+// ── SLIDE 3: AJUSTE POLINOMIAL (OVERFIT) ─────────────────────
+var overfitInited = false;
+var overfitDeg    = 1;
+
+var DATA_X = [-4.5,-4,-3.5,-2.8,-2.2,-1.6,-1,-0.4,0.2,0.8,1.4,2,2.6,3.2,3.8,4.4];
+var DATA_Y = [16,  12, 11,  8.5, 5.5, 3.8, 2, 0.5, 0.8,2.4, 4.2,6.8,8.8,11, 14, 18];
+var NOISE  = [0.9,-1.2,0.5,-0.8,1.1,-0.6,0.7,-1,0.4,1.3,-0.5,0.9,-1.1,0.6,-0.8,1.2];
+var DY     = DATA_Y.map(function(v, i){ return v + NOISE[i]; });
+
+function polyFit(xs, ys, deg) {
+  var n = xs.length, m = deg + 1;
+  var A = xs.map(function(x){ var row = []; for (var j=0;j<m;j++) row.push(Math.pow(x,j)); return row; });
+  var AtA = [], Atb = [];
+  for (var r = 0; r < m; r++) {
+    AtA.push([]); Atb.push(0);
+    for (var c = 0; c < m; c++) { var s=0; for (var k=0;k<n;k++) s+=A[k][r]*A[k][c]; AtA[r].push(s); }
+    for (var k = 0; k < n; k++) Atb[r] += A[k][r] * ys[k];
+  }
+  return gaussSolve(AtA, Atb);
+}
+
+function gaussSolve(A, b) {
+  var n = b.length;
+  var M = A.map(function(row, i){ return row.slice().concat([b[i]]); });
+  for (var col = 0; col < n; col++) {
+    var max = col;
+    for (var row = col+1; row < n; row++) if (Math.abs(M[row][col]) > Math.abs(M[max][col])) max = row;
+    var tmp = M[col]; M[col] = M[max]; M[max] = tmp;
+    if (Math.abs(M[col][col]) < 1e-12) continue;
+    for (var row = col+1; row < n; row++) {
+      var f = M[row][col] / M[col][col];
+      for (var j = col; j <= n; j++) M[row][j] -= f * M[col][j];
+    }
+  }
+  var x = new Array(n).fill(0);
+  for (var i = n-1; i >= 0; i--) {
+    x[i] = M[i][n];
+    for (var j = i+1; j < n; j++) x[i] -= M[i][j] * x[j];
+    x[i] /= M[i][i];
+  }
+  return x;
+}
+
+function evalPoly(coeffs, x) {
+  return coeffs.reduce(function(s, c, i){ return s + c * Math.pow(x, i); }, 0);
+}
+
+function setDegree(d, btn) {
+  overfitDeg = d;
+  document.querySelectorAll('.poly-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  drawOverfit();
+}
+
+function initOverfit() { overfitInited = true; drawOverfit(); }
+
+function drawOverfit() {
+  var canvas = document.getElementById('overfit-canvas');
+  var ctx    = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height, pad = 38;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#fafafa'; ctx.fillRect(0, 0, W, H);
+
+  var xMin=-5, xMax=5, yMin=-5, yMax=25;
+  function tx(x){ return pad + (x-xMin)/(xMax-xMin)*(W-pad-10); }
+  function ty(y){ return H-pad - (y-yMin)/(yMax-yMin)*(H-pad-10); }
+
+  // grid
+  ctx.strokeStyle='#eee'; ctx.lineWidth=1;
+  for (var gx=-4; gx<=4; gx+=2){ ctx.beginPath(); ctx.moveTo(tx(gx),pad-4); ctx.lineTo(tx(gx),H-pad); ctx.stroke(); }
+  for (var gy=0;  gy<=20; gy+=5){ ctx.beginPath(); ctx.moveTo(pad,ty(gy));   ctx.lineTo(W-10,ty(gy));  ctx.stroke(); }
+
+  // axes
+  ctx.strokeStyle='#ccc'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(pad,H-pad); ctx.lineTo(W-10,H-pad); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad,pad-4); ctx.lineTo(pad,H-pad);  ctx.stroke();
+
+  // fit & draw curve
+  var coeffs;
+  try { coeffs = polyFit(DATA_X, DY, Math.min(overfitDeg, DATA_X.length-1)); } catch(e){ return; }
+  ctx.strokeStyle = '#b04500'; ctx.lineWidth = 2.2; ctx.setLineDash([]);
+  ctx.beginPath();
+  var first = true;
+  for (var xi = xMin; xi <= xMax; xi += 0.04) {
+    var yi = evalPoly(coeffs, xi);
+    if (yi < yMin-5 || yi > yMax+5){ first=true; continue; }
+    if (first){ ctx.moveTo(tx(xi), ty(yi)); first=false; } else ctx.lineTo(tx(xi), ty(yi));
+  }
+  ctx.stroke();
+
+  // scatter
+  ctx.fillStyle = 'rgba(26,58,107,0.75)';
+  DATA_X.forEach(function(x, i){
+    ctx.beginPath(); ctx.arc(tx(x), ty(DY[i]), 4, 0, 2*Math.PI); ctx.fill();
+  });
+
+  // verdict
+  var el = document.getElementById('overfit-verdict');
+  var msgs = {
+    1:  'Lineal (grado 1): puede ser insuficiente si el patron real es curvo. Simple, interpretable, posible underfitting.',
+    3:  'Grado 3: captura la curvatura principal sin aprender el ruido. Candidato a buen ajuste.',
+    8:  'Grado 8: empieza a sobreajustar. La curva se acerca a todos los puntos. El error en test comenzara a subir.',
+    14: 'Grado 14: sobreajuste severo. La curva interpola casi exactamente todos los puntos — incluyendo el ruido. Fallara en datos nuevos.'
+  };
+  el.textContent = msgs[overfitDeg] || '';
+  el.style.borderColor = overfitDeg >= 14 ? 'var(--danger)' : overfitDeg >= 8 ? 'var(--accent2)' : 'var(--success)';
+  el.style.color = overfitDeg >= 14 ? 'var(--danger)' : overfitDeg >= 8 ? 'var(--accent2)' : 'var(--success)';
+}
+
+// ── SLIDE 4: SPLIT INTERACTIVO ───────────────────────────────
+var splitInited = false;
+
+function initSplit() {
+  splitInited = true;
+  renderSplit(80);
+  document.getElementById('split-slider').addEventListener('input', function(){
+    renderSplit(parseInt(this.value));
+  });
+}
+
+function renderSplit(pct) {
+  var test = 100 - pct;
+  document.getElementById('split-pct').textContent      = pct + '%';
+  document.getElementById('split-train-bar').style.width = pct + '%';
+  document.getElementById('split-test-bar').style.width  = test + '%';
+  document.getElementById('train-lbl').textContent = 'Entrenamiento: ' + pct + '%';
+  document.getElementById('test-lbl').textContent  = 'Evaluacion: ' + test + '%';
+  var n = 50, nTrain = Math.round(n * pct / 100);
+  var container = document.getElementById('dots-container');
+  container.innerHTML = '';
+  for (var i = 0; i < n; i++) {
+    var d = document.createElement('div');
+    d.className = 'dot ' + (i < nTrain ? 'train' : 'test');
+    container.appendChild(d);
+  }
+}
+
+// ── SLIDE 5: BIAS-VARIANCE CANVAS ────────────────────────────
+var bvInited = false;
+
+function initBV() {
+  bvInited = true;
+  var canvas = document.getElementById('bias-variance-canvas');
+  var ctx    = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height, pad = 40;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#fafafa'; ctx.fillRect(0, 0, W, H);
+
+  var n = 60;
+  function tx(i){ return pad + (i/(n-1))*(W-pad-14); }
+  function ty(v){ return H-pad - v*(H-pad-14); }
+
+  var trainErr = [], testErr = [];
+  for (var i = 0; i < n; i++) {
+    var x = i / (n-1);
+    trainErr.push(0.62 * Math.exp(-3.5*x) + 0.04);
+    var u = x - 0.38;
+    testErr.push(0.28 + 0.9*u*u + 0.62*Math.exp(-3.5*x)*0.6);
+  }
+  var maxV = Math.max.apply(null, testErr.concat(trainErr));
+
+  // grid
+  ctx.strokeStyle='#eee'; ctx.lineWidth=1;
+  for (var g=0; g<=4; g++){
+    ctx.beginPath(); ctx.moveTo(tx(g*(n-1)/4), pad); ctx.lineTo(tx(g*(n-1)/4), H-pad); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad, ty(g/4)); ctx.lineTo(W-14, ty(g/4)); ctx.stroke();
+  }
+
+  // axes
+  ctx.strokeStyle='#ccc'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(pad, H-pad); ctx.lineTo(W-14, H-pad); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad, 10);    ctx.lineTo(pad, H-pad);  ctx.stroke();
+
+  // axis labels
+  ctx.fillStyle='#999'; ctx.font='9px JetBrains Mono';
+  ctx.fillText('Complejidad del modelo', W/2-50, H-5);
+  ctx.save(); ctx.translate(10, H/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText('Error de prediccion', -45, 0); ctx.restore();
+
+  // zone labels
+  ctx.fillStyle='rgba(160,28,28,0.55)'; ctx.font='8px JetBrains Mono';
+  ctx.fillText('UNDERFITTING', tx(1), pad+24);
+  ctx.fillText('OVERFITTING', tx(40), pad+24);
+
+  // optimal dashed line at true minimum of testErr (i=30)
+  var optI = 30;
+  ctx.strokeStyle='rgba(100,100,100,0.5)'; ctx.lineWidth=1.2; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(tx(optI), pad); ctx.lineTo(tx(optI), H-pad); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#888'; ctx.font='8px JetBrains Mono';
+  ctx.fillText('optimo', tx(optI)+3, pad+14);
+
+  // test curve
+  ctx.strokeStyle='#b04500'; ctx.lineWidth=2.5; ctx.setLineDash([]);
+  ctx.beginPath();
+  for (var i=0; i<n; i++){
+    var yv = ty(testErr[i]/maxV*0.9);
+    if (i===0) ctx.moveTo(tx(i), yv); else ctx.lineTo(tx(i), yv);
+  }
+  ctx.stroke();
+
+  // train curve
+  ctx.strokeStyle='#2a5298'; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  for (var i=0; i<n; i++){
+    var yv = ty(trainErr[i]/maxV*0.9);
+    if (i===0) ctx.moveTo(tx(i), yv); else ctx.lineTo(tx(i), yv);
+  }
+  ctx.stroke();
+
+  // curve labels
+  ctx.fillStyle='#2a5298'; ctx.font='bold 9px JetBrains Mono';
+  ctx.fillText('Train', tx(52), ty(trainErr[52]/maxV*0.9) - 6);
+  ctx.fillStyle='#b04500';
+  ctx.fillText('Test', tx(50), ty(testErr[50]/maxV*0.9) + 14);
+}
+
+// ── SLIDE 5: SEMILLA Y REPRODUCIBILIDAD ──────────────────────
+var seedSimInited = false;
+
+function seededRand(seed) {
+  var s = seed >>> 0;
+  return function() {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+
+function fisherYates(arr, getRnd) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(getRnd() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function renderObs(obsId, listId, testSet) {
+  var obsEl  = document.getElementById(obsId);
+  var listEl = document.getElementById(listId);
+  if (!obsEl) return;
+  var testMap = {};
+  testSet.forEach(function(x) { testMap[x] = true; });
+  obsEl.innerHTML = '';
+  for (var i = 1; i <= 30; i++) {
+    var sq = document.createElement('div');
+    var isTest = !!testMap[i];
+    sq.style.cssText = 'width:18px;height:18px;font-size:0.52rem;display:flex;align-items:center;justify-content:center;font-family:JetBrains Mono,monospace;border-radius:2px;color:white;font-weight:700;cursor:default;';
+    sq.style.background = isTest ? 'var(--accent2)' : 'var(--blue2)';
+    sq.title = isTest ? 'Test' : 'Train';
+    sq.textContent = i;
+    obsEl.appendChild(sq);
+  }
+  var sorted = testSet.slice().sort(function(a,b){return a-b;});
+  listEl.textContent = 'Obs test: (' + sorted.join(', ') + ')';
+}
+
+function simNoSeed() {
+  var obs = [];
+  for (var i = 1; i <= 30; i++) obs.push(i);
+  var shuffA = fisherYates(obs, function(){ return Math.random(); });
+  var shuffB = fisherYates(obs, function(){ return Math.random(); });
+  renderObs('seed-obs-a', 'seed-list-a', shuffA.slice(0, 6));
+  renderObs('seed-obs-b', 'seed-list-b', shuffB.slice(0, 6));
+  var msg = document.getElementById('seed-msg');
+  if (msg) {
+    msg.style.color = 'var(--danger)';
+    msg.textContent = 'Particiones distintas — cada ejecucion da resultados diferentes.';
+  }
+}
+
+function simWithSeed() {
+  var obs = [];
+  for (var i = 1; i <= 30; i++) obs.push(i);
+  var shuffA = fisherYates(obs, seededRand(42));
+  var shuffB = fisherYates(obs, seededRand(42));
+  renderObs('seed-obs-a', 'seed-list-a', shuffA.slice(0, 6));
+  renderObs('seed-obs-b', 'seed-list-b', shuffB.slice(0, 6));
+  var msg = document.getElementById('seed-msg');
+  if (msg) {
+    msg.style.color = 'var(--success)';
+    msg.textContent = 'Particion identica — la misma semilla garantiza reproducibilidad.';
+  }
+}
+
+</script>
+</body>
+</html>

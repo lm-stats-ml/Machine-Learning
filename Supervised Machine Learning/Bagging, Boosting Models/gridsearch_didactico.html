@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GridSearch vs RandomizedSearch</title>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:ital,wght@0,400;0,600;1,400&family=Spectral:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;600;700&family=Inconsolata:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff; --ink: #1a1a1a; --mid: #4a4a4a; --soft: #8a8a8a;
+    --rule: 1px solid #e0e0e0;
+    --accent: #2d6a4f; --accent2: #40916c; --accent3: #d8f3dc; --accent4: #f0faf3;
+    --violet: #5c4197; --violet2: #7b5ea7; --violet3: #ede7f6;
+    --brown: #7b4f2e; --brown2: #a0522d; --brown3: #fdf0e8;
+    --blue: #1a3a6b; --blue3: #e8eef8;
+    --warn: #e07b00; --danger: #c0392b; --success: #2d6a4f;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Jost', sans-serif; background: #f4f4f2; color: var(--ink); min-height: 100vh; }
+
+  nav {
+    position: sticky; top: 0; z-index: 100; background: var(--ink);
+    display: flex; align-items: center; padding: 0 24px; height: 44px; overflow-x: auto;
+  }
+  nav button {
+    background: none; border: none; color: #aaa; font-family: 'Inconsolata', monospace;
+    font-size: 0.72rem; font-weight: 600; padding: 0 14px; height: 44px; cursor: pointer;
+    white-space: nowrap; letter-spacing: 0.04em; border-bottom: 2px solid transparent;
+    transition: color .2s, border-color .2s;
+  }
+  nav button:hover { color: #fff; }
+  nav button.active { color: #fff; border-bottom-color: var(--accent2); }
+  .nav-title { font-family: 'Zilla Slab', serif; font-size: 0.84rem; color: #fff; margin-right: 20px; white-space: nowrap; flex-shrink: 0; }
+
+  .slide { display: none; max-width: 860px; margin: 32px auto; background: var(--bg); padding: 42px 48px; border: var(--rule); }
+  .slide.active { display: block; }
+
+  .slide-label { font-family: 'Inconsolata', monospace; font-size: 0.7rem; letter-spacing: 0.1em; color: var(--soft); text-transform: uppercase; margin-bottom: 10px; }
+  h2 { font-family: 'Zilla Slab', serif; font-size: 2rem; font-weight: 600; line-height: 1.2; margin-bottom: 10px; }
+  h2 em { font-style: italic; color: var(--accent); }
+  h3 { font-family: 'Zilla Slab', serif; font-size: 1.1rem; font-weight: 600; margin: 16px 0 8px; }
+  p.lead { font-family: 'Spectral', serif; font-size: 1.05rem; color: var(--mid); line-height: 1.6; margin-bottom: 14px; }
+  p { font-size: 0.88rem; color: var(--mid); line-height: 1.65; margin-bottom: 8px; }
+  hr.rule { border: none; border-top: var(--rule); margin: 18px 0; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  .explain-example {
+    background: #f8f8f6; border-left: 3px solid var(--accent2);
+    padding: 12px 16px; font-family: 'Inconsolata', monospace;
+    font-size: 0.8rem; line-height: 1.9; color: var(--mid); margin: 8px 0;
+  }
+  .callout { background: var(--accent4); border: 1px solid #b7e4c7; padding: 12px 16px; margin: 10px 0; }
+  .callout p { color: var(--ink); font-size: 0.84rem; }
+  .callout.violet { background: var(--violet3); border-color: #c5b3e6; }
+  .callout.brown  { background: var(--brown3);  border-color: #d4a87a; }
+  .callout.blue   { background: var(--blue3);   border-color: #a8bfe0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin: 8px 0; }
+  th { background: var(--ink); color: #fff; font-family: 'Inconsolata', monospace; font-size: 0.72rem; letter-spacing: 0.05em; padding: 7px 10px; text-align: left; }
+  td { padding: 7px 10px; border-bottom: var(--rule); color: var(--mid); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+
+  code { font-family: 'Inconsolata', monospace; font-size: 0.82em; background: #f0f0ee; padding: 1px 5px; color: var(--brown); }
+
+  .cover-tag { font-family: 'Inconsolata', monospace; font-size: 0.72rem; letter-spacing: 0.12em; color: var(--soft); text-transform: uppercase; margin-bottom: 14px; }
+  .cover-h1 { font-family: 'Zilla Slab', serif; font-size: 2.8rem; font-weight: 600; line-height: 1.15; margin-bottom: 18px; }
+  .cover-h1 em { font-style: italic; color: var(--accent); }
+  .cover-sub { font-family: 'Spectral', serif; font-size: 1.1rem; color: var(--mid); line-height: 1.65; max-width: 560px; margin-bottom: 28px; }
+  .cover-meta { display: flex; gap: 28px; border-top: var(--rule); padding-top: 20px; flex-wrap: wrap; }
+  .cover-meta-item { display: flex; flex-direction: column; gap: 2px; }
+  .cover-meta-item strong { font-size: 1.1rem; font-weight: 700; color: var(--ink); }
+  .cover-meta-item { font-size: 0.78rem; color: var(--soft); }
+
+  .btn { display:inline-block; background:var(--accent); color:#fff; border:none; font-family:'Jost',sans-serif; font-size:0.78rem; font-weight:600; padding:7px 18px; cursor:pointer; margin:4px 4px 4px 0; transition:background .2s; }
+  .btn:hover { background: var(--accent2); }
+  .btn.violet { background: var(--violet); }
+  .btn.violet:hover { background: var(--violet2); }
+  .btn.brown { background: var(--brown); }
+
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  input[type=number] { font-family:'Inconsolata',monospace; font-size:0.84rem; border: var(--rule); padding: 5px 8px; width: 80px; }
+
+  canvas { display: block; }
+  .canvas-wrap { border: var(--rule); padding: 8px; background: #fafaf8; }
+
+  .metric-box { border: var(--rule); padding: 12px 16px; text-align: center; }
+  .metric-box .val { font-family: 'Zilla Slab', serif; font-size: 1.6rem; font-weight: 600; color: var(--accent); }
+  .metric-box .lbl { font-family: 'Inconsolata', monospace; font-size: 0.68rem; color: var(--soft); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
+  .metric-box.violet .val { color: var(--violet); }
+  .metric-box.brown .val  { color: var(--brown); }
+
+  .tag { display:inline-block; font-family:'Inconsolata',monospace; font-size:0.7rem; padding:2px 8px; margin:2px; }
+  .tag.green  { background:var(--accent3); color:var(--accent); }
+  .tag.violet { background:var(--violet3); color:var(--violet); }
+  .tag.brown  { background:var(--brown3);  color:var(--brown); }
+
+  .code-block { background:#1e1e1e; color:#d4d4d4; font-family:'Inconsolata',monospace; font-size:0.78rem; line-height:1.8; padding:16px 20px; margin:10px 0; overflow-x:auto; }
+  .kw { color:#569cd6; } .fn { color:#dcdcaa; } .st { color:#ce9178; } .cm { color:#6a9955; } .nm { color:#b5cea8; }
+
+  @media (max-width: 640px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .slide { padding: 24px 20px; }
+    h2 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-title">GridSearch vs RandomizedSearch</div>
+  <button class="active" onclick="goTo(1,this)">01 Portada</button>
+  <button onclick="goTo(2,this)">02 GridSearch</button>
+  <button onclick="goTo(3,this)">03 RandomizedSearch</button>
+  <button onclick="goTo(4,this)">04 Intuicion Geometrica</button>
+  <button onclick="goTo(5,this)">05 Simulador</button>
+  <button onclick="goTo(6,this)">06 Comparacion</button>
+  <button onclick="goTo(7,this)">07 Codigo</button>
+</nav>
+
+<!-- SLIDE 1 -->
+<section class="slide active" id="slide-1">
+  <div class="cover-tag">Optimizacion de Hiperparametros — XGBoost NYC Taxi</div>
+  <div class="cover-h1">GridSearch vs<br><em>RandomizedSearch</em></div>
+  <p class="cover-sub">Dos estrategias para encontrar los mejores hiperparametros de un modelo. Una es exhaustiva y garantiza el optimo dentro de la grilla. La otra es aleatoria y es la unica viable cuando el espacio de busqueda es grande.</p>
+  <div class="cover-meta">
+    <div class="cover-meta-item"><strong>5</strong>Secciones</div>
+    <div class="cover-meta-item"><strong>Interactivo</strong>Simulador en vivo</div>
+    <div class="cover-meta-item"><strong>XGBoost</strong>NYC Taxi</div>
+    <div class="cover-meta-item"><strong>sklearn</strong>GridSearchCV / RandomizedSearchCV</div>
+  </div>
+  <hr class="rule">
+  <div class="grid-2" style="margin-top:20px">
+    <div style="border-left:3px solid var(--accent);padding-left:14px">
+      <div style="font-family:'Inconsolata',monospace;font-size:0.68rem;color:var(--soft);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">GridSearchCV</div>
+      <p style="font-size:0.83rem">Evalua TODAS las combinaciones posibles de hiperparametros. Garantiza encontrar el optimo dentro de la grilla definida. Costoso cuando hay muchos parametros.</p>
+    </div>
+    <div style="border-left:3px solid var(--violet);padding-left:14px">
+      <div style="font-family:'Inconsolata',monospace;font-size:0.68rem;color:var(--soft);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">RandomizedSearchCV</div>
+      <p style="font-size:0.83rem">Sortea N combinaciones aleatorias del espacio de busqueda. No garantiza el optimo absoluto pero encuentra regiones buenas en una fraccion del tiempo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 2 -->
+<section class="slide" id="slide-2">
+  <div class="slide-label">01 — GridSearch</div>
+  <h2>GridSearch — <em>busqueda exhaustiva</em></h2>
+  <p class="lead">Evalua sistematicamente todas las combinaciones posibles de los valores de hiperparametros que defines. Como una cuadricula: visita cada interseccion.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>Como funciona</h3>
+      <p style="font-size:0.84rem;margin-bottom:10px">Con 2 hiperparametros y 3 valores cada uno:</p>
+      <div class="explain-example">
+        max_depth     = [3, 4, 6]<br>
+        learning_rate = [0.01, 0.05, 0.1]<br><br>
+        Combinaciones evaluadas:<br>
+        (3, 0.01)  (3, 0.05)  (3, 0.10)<br>
+        (4, 0.01)  (4, 0.05)  (4, 0.10)<br>
+        (6, 0.01)  (6, 0.05)  (6, 0.10)<br><br>
+        Total: 3 x 3 = 9 combinaciones<br>
+        Con cv=3: 9 x 3 = 27 entrenamientos
+      </div>
+
+      <h3 style="margin-top:14px">Cuadricula interactiva</h3>
+      <p style="font-size:0.82rem;margin-bottom:8px">Haz clic en cualquier celda para ver que combinacion evalua GridSearch.</p>
+      <div id="gridViz" style="margin-top:8px"></div>
+      <div id="gridInfo" style="font-family:'Inconsolata',monospace;font-size:0.76rem;color:var(--mid);margin-top:8px;padding:8px;background:#f8f8f6;min-height:40px"></div>
+    </div>
+    <div>
+      <h3>El problema del crecimiento exponencial</h3>
+      <div class="explain-example">
+        2 parametros x 3 valores:<br>
+        3^2 = 9 combinaciones<br><br>
+        4 parametros x 3 valores:<br>
+        3^4 = 81 combinaciones<br><br>
+        6 parametros x 3 valores:<br>
+        3^6 = 729 combinaciones<br><br>
+        8 parametros x 3 valores (XGBoost):<br>
+        3^8 = 6,561 combinaciones<br>
+        x 3 folds = 19,683 entrenamientos<br>
+        x 2 min   = ~27 dias de computo
+      </div>
+
+      <div class="callout" style="margin-top:12px">
+        <p><strong>Cuando usar GridSearch:</strong> cuando tienes 3 o menos hiperparametros y el dataset es pequeno. Para XGBoost con NYC Taxi es completamente inviable.</p>
+      </div>
+
+      <h3 style="margin-top:14px">Ventajas y limitaciones</h3>
+      <table>
+        <thead><tr><th></th><th>GridSearch</th></tr></thead>
+        <tbody>
+          <tr><td>Garantia</td><td>Encuentra el optimo dentro de la grilla definida</td></tr>
+          <tr><td>Reproducibilidad</td><td>Siempre da el mismo resultado</td></tr>
+          <tr><td>Costo</td><td>Crece exponencialmente con parametros</td></tr>
+          <tr><td>Escalabilidad</td><td>Inviable con mas de 4-5 hiperparametros</td></tr>
+          <tr><td>Sesgo</td><td>Solo evalua los valores que defines en la grilla</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 3 -->
+<section class="slide" id="slide-3">
+  <div class="slide-label">02 — RandomizedSearch</div>
+  <h2>RandomizedSearch — <em>busqueda aleatoria</em></h2>
+  <p class="lead">En lugar de evaluar todas las combinaciones, sortea N combinaciones aleatorias del espacio de busqueda. Controlas el presupuesto computacional directamente con <code>n_iter</code>.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>Como funciona</h3>
+      <p style="font-size:0.84rem;margin-bottom:10px">Con los mismos 2 hiperparametros pero <code>n_iter=5</code>:</p>
+      <div class="explain-example">
+        max_depth     = [3, 4, 6]<br>
+        learning_rate = [0.01, 0.05, 0.1]<br><br>
+        Combinaciones sorteadas (n_iter=5):<br>
+        (4, 0.05)  &lt;-- sorteada<br>
+        (3, 0.10)  &lt;-- sorteada<br>
+        (6, 0.01)  &lt;-- sorteada<br>
+        (4, 0.01)  &lt;-- sorteada<br>
+        (3, 0.05)  &lt;-- sorteada<br><br>
+        Total: 5 combinaciones<br>
+        Con cv=3: 5 x 3 = 15 entrenamientos
+      </div>
+
+      <h3 style="margin-top:14px">El argumento de Bergstra y Bengio (2012)</h3>
+      <div class="callout violet">
+        <p>En la practica los hiperparametros NO son igualmente importantes. <code>learning_rate</code> y <code>max_depth</code> dominan el resultado de XGBoost. <code>reg_alpha</code> y <code>reg_lambda</code> tienen efecto menor.</p>
+        <p style="margin-top:6px">GridSearch desperdicia el mismo esfuerzo en parametros importantes y no importantes. RandomizedSearch, al muestrear el espacio completo, explora MAS valores distintos de los parametros importantes por el mismo costo.</p>
+      </div>
+
+      <h3 style="margin-top:14px">La probabilidad de exito</h3>
+      <div class="explain-example">
+        Si el "valle optimo" ocupa el 5% del espacio:<br><br>
+        P(encontrarlo en 1 intento)  = 0.05<br>
+        P(encontrarlo en 20 intentos) = 1-(0.95^20) = 0.64<br>
+        P(encontrarlo en 50 intentos) = 1-(0.95^50) = 0.92<br><br>
+        Con n_iter=20 tienes 64% de probabilidad
+        de caer en una region buena al menos una vez.
+      </div>
+    </div>
+    <div>
+      <h3>Ventajas y limitaciones</h3>
+      <table>
+        <thead><tr><th></th><th>RandomizedSearch</th></tr></thead>
+        <tbody>
+          <tr><td>Costo</td><td>Controlado exactamente con n_iter</td></tr>
+          <tr><td>Escalabilidad</td><td>Funciona con cualquier numero de parametros</td></tr>
+          <tr><td>Distribucion continua</td><td>Puede muestrear de rangos continuos, no solo valores discretos</td></tr>
+          <tr><td>Garantia</td><td>No garantiza encontrar el optimo absoluto</td></tr>
+          <tr><td>Reproducibilidad</td><td>Requiere fijar random_state</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top:14px">Ventaja con distribuciones continuas</h3>
+      <p style="font-size:0.84rem;margin-bottom:8px">RandomizedSearch puede muestrear de distribuciones, no solo listas:</p>
+      <div class="explain-example">
+        <span style="color:#569cd6">from</span> scipy.stats <span style="color:#569cd6">import</span> uniform, randint<br><br>
+        parametros = {<br>
+        &nbsp;&nbsp;<span style="color:#ce9178">'learning_rate'</span>: uniform(0.01, 0.29),<br>
+        &nbsp;&nbsp;<span style="color:#ce9178">'max_depth'</span>    : randint(3, 9),<br>
+        &nbsp;&nbsp;<span style="color:#ce9178">'subsample'</span>    : uniform(0.6, 0.4),<br>
+        }<br><br>
+        <span style="color:#6a9955"># Puede explorar 0.0312, 0.0847, 0.1923...</span><br>
+        <span style="color:#6a9955"># GridSearch solo exploraria 0.01, 0.05, 0.1</span>
+      </div>
+
+      <div class="callout" style="margin-top:12px">
+        <p><strong>Para XGBoost con NYC Taxi:</strong> <code>n_iter=20</code> con <code>cv=3</code> da 60 entrenamientos. A ~2 minutos por entrenamiento son ~2 horas. Manejable en tu Mac con <code>n_jobs=-1</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 4 -->
+<section class="slide" id="slide-4">
+  <div class="slide-label">03 — Intuicion Geometrica</div>
+  <h2>El espacio de <em>hiperparametros</em></h2>
+  <p class="lead">Imagina el espacio de hiperparametros como un mapa topografico. Las zonas bajas (valles) representan buenas combinaciones. Las zonas altas (montanas) representan malas combinaciones.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>GridSearch — cuadricula uniforme</h3>
+      <div class="canvas-wrap">
+        <canvas id="gridMap" width="360" height="280"></canvas>
+      </div>
+      <p style="font-size:0.78rem;color:var(--soft);margin-top:6px">Los puntos negros son las combinaciones evaluadas. La cuadricula cubre todo el espacio pero puede perderse valores intermedios optimos.</p>
+    </div>
+    <div>
+      <h3>RandomizedSearch — muestreo disperso</h3>
+      <div class="canvas-wrap">
+        <canvas id="randMap" width="360" height="280"></canvas>
+      </div>
+      <p style="font-size:0.78rem;color:var(--soft);margin-top:6px">Los puntos azules son las combinaciones sorteadas. Misma cantidad de evaluaciones pero mayor cobertura del espacio.</p>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn" onclick="redrawMaps()">Nuevo sorteo</button>
+        <button class="btn violet" onclick="toggleValley()">Mostrar valle optimo</button>
+      </div>
+    </div>
+  </div>
+
+  <hr class="rule" style="margin-top:24px">
+
+  <h3>La intuicion clave — parametros de distinta importancia</h3>
+  <div class="grid-2" style="margin-top:10px">
+    <div class="callout">
+      <p><strong>En XGBoost para NYC Taxi:</strong></p>
+      <p style="margin-top:6px"><span class="tag green">MUY importante</span> learning_rate — controla cuanto aprende cada arbol</p>
+      <p><span class="tag green">MUY importante</span> max_depth — controla la complejidad</p>
+      <p><span class="tag violet">Moderado</span> subsample — reduce overfitting</p>
+      <p><span class="tag violet">Moderado</span> colsample_bytree — reduce overfitting</p>
+      <p><span class="tag brown">Menor efecto</span> reg_alpha — regularizacion L1</p>
+      <p><span class="tag brown">Menor efecto</span> reg_lambda — regularizacion L2</p>
+    </div>
+    <div class="callout violet">
+      <p><strong>GridSearch:</strong> gasta el mismo numero de evaluaciones en <code>reg_alpha</code> (poco importante) que en <code>learning_rate</code> (muy importante).</p>
+      <p style="margin-top:8px"><strong>RandomizedSearch:</strong> al muestrear aleatoriamente, cada parametro importante recibe muchos valores distintos. Con 20 iteraciones exploras 20 valores distintos de <code>learning_rate</code> en lugar de solo 3.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 5 -->
+<section class="slide" id="slide-5">
+  <div class="slide-label">04 — Simulador</div>
+  <h2>Simulador <em>interactivo</em></h2>
+  <p class="lead">Configura los hiperparametros de XGBoost para NYC Taxi y compara el costo computacional de GridSearch vs RandomizedSearch en tiempo real.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>Configuracion del espacio de busqueda</h3>
+
+      <div style="border:var(--rule);padding:16px">
+        <div style="margin-bottom:12px">
+          <label style="font-size:0.76rem;color:var(--mid);display:block;margin-bottom:4px">Numero de hiperparametros: <span id="nParamsLabel" style="font-weight:600;color:var(--accent)">8</span></label>
+          <input type="range" id="nParams" min="2" max="10" value="8">
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:0.76rem;color:var(--mid);display:block;margin-bottom:4px">Valores por parametro: <span id="nValsLabel" style="font-weight:600;color:var(--accent)">3</span></label>
+          <input type="range" id="nVals" min="2" max="5" value="3">
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:0.76rem;color:var(--mid);display:block;margin-bottom:4px">Folds de CV: <span id="nFoldsLabel" style="font-weight:600;color:var(--accent)">3</span></label>
+          <input type="range" id="nFolds" min="2" max="10" value="3">
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:0.76rem;color:var(--mid);display:block;margin-bottom:4px">n_iter (RandomizedSearch): <span id="nIterLabel" style="font-weight:600;color:var(--violet)">20</span></label>
+          <input type="range" id="nIter" min="5" max="200" value="20" step="5">
+        </div>
+        <div style="margin-bottom:4px">
+          <label style="font-size:0.76rem;color:var(--mid);display:block;margin-bottom:4px">Minutos por entrenamiento: <span id="minLabel" style="font-weight:600;color:var(--brown)">2</span></label>
+          <input type="range" id="minPer" min="1" max="30" value="2">
+        </div>
+      </div>
+
+      <div style="border:var(--rule);padding:14px;margin-top:12px;font-family:'Inconsolata',monospace;font-size:0.76rem;line-height:2;color:var(--mid)" id="calcDetail"></div>
+    </div>
+
+    <div>
+      <h3>Resultado</h3>
+      <div class="grid-2" style="gap:12px;margin-bottom:14px">
+        <div class="metric-box">
+          <div class="val" id="gridComb">—</div>
+          <div class="lbl">Combinaciones Grid</div>
+        </div>
+        <div class="metric-box violet">
+          <div class="val" id="randComb">—</div>
+          <div class="lbl">Combinaciones Rand</div>
+        </div>
+        <div class="metric-box brown">
+          <div class="val" id="gridTime">—</div>
+          <div class="lbl">Tiempo Grid</div>
+        </div>
+        <div class="metric-box">
+          <div class="val" id="randTime">—</div>
+          <div class="lbl">Tiempo Rand</div>
+        </div>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="simCanvas" width="360" height="200"></canvas>
+      </div>
+
+      <div id="veredicto" style="margin-top:12px;padding:12px 16px;border:2px solid var(--accent);background:var(--accent4);font-size:0.84rem"></div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 6 -->
+<section class="slide" id="slide-6">
+  <div class="slide-label">05 — Comparacion</div>
+  <h2>Tabla <em>comparativa</em> completa</h2>
+  <p class="lead">Resumen de todas las dimensiones relevantes para decidir cual estrategia usar en cada situacion.</p>
+  <hr class="rule">
+  <table>
+    <thead><tr><th>Dimension</th><th>GridSearchCV</th><th>RandomizedSearchCV</th></tr></thead>
+    <tbody>
+      <tr><td>Estrategia</td><td>Exhaustiva — evalua todo</td><td>Aleatoria — muestrea N combinaciones</td></tr>
+      <tr><td>Costo computacional</td><td>n_valores ^ n_parametros x cv</td><td>n_iter x cv (controlado)</td></tr>
+      <tr><td>Garantia de optimo</td><td>Si, dentro de la grilla</td><td>No, pero probabilisticamente bueno</td></tr>
+      <tr><td>Escalabilidad</td><td>Inviable con mas de 4-5 parametros</td><td>Funciona con cualquier numero</td></tr>
+      <tr><td>Distribucion continua</td><td>No — solo valores discretos</td><td>Si — puede muestrear de scipy.stats</td></tr>
+      <tr><td>Reproducibilidad</td><td>Siempre igual</td><td>Requiere fijar random_state</td></tr>
+      <tr><td>Serendipity</td><td>No — solo evalua lo que defines</td><td>Si — puede encontrar combinaciones inesperadas</td></tr>
+      <tr><td>Presupuesto fijo</td><td>No — el costo depende de la grilla</td><td>Si — n_iter define exactamente el costo</td></tr>
+    </tbody>
+  </table>
+
+  <hr class="rule" style="margin-top:24px">
+
+  <h3>Regla practica para el curso</h3>
+  <table style="margin-top:8px">
+    <thead><tr><th>Condicion</th><th>Recomendacion</th><th>Ejemplo</th></tr></thead>
+    <tbody>
+      <tr><td>2-3 hiperparametros</td><td><span class="tag green">GridSearchCV</span></td><td>CART con max_depth y criterion</td></tr>
+      <tr><td>Menos de 100 combinaciones</td><td><span class="tag green">GridSearchCV</span></td><td>KNN con k y metric</td></tr>
+      <tr><td>4 o mas hiperparametros</td><td><span class="tag violet">RandomizedSearchCV</span></td><td>Random Forest, XGBoost</td></tr>
+      <tr><td>Dataset grande</td><td><span class="tag violet">RandomizedSearchCV</span></td><td>NYC Taxi con 550K filas</td></tr>
+      <tr><td>Exploracion rapida</td><td><span class="tag violet">n_iter = 10-20</span></td><td>Primera iteracion del proyecto</td></tr>
+      <tr><td>Resultado serio</td><td><span class="tag violet">n_iter = 50-100</span></td><td>Entrega final, paper</td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid-2" style="margin-top:20px">
+    <div class="callout">
+      <p><strong>En tu notebook NYC Taxi:</strong> usaste GridSearchCV para CART (48 combinaciones, manejable). Para Random Forest usaste RandomizedSearchCV con n_iter=20. Para XGBoost con 8 parametros, RandomizedSearchCV con n_iter=20-50 es la unica opcion practica.</p>
+    </div>
+    <div class="callout violet">
+      <p><strong>Alternativas avanzadas:</strong> Optuna y Hyperopt implementan busqueda bayesiana — aprenden de evaluaciones anteriores para dirigirse hacia regiones prometedoras. Son mas eficientes que RandomizedSearch para presupuestos muy pequenos (n_iter &lt; 20).</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 7 -->
+<section class="slide" id="slide-7">
+  <div class="slide-label">06 — Codigo</div>
+  <h2>Codigo <em>completo</em></h2>
+  <p class="lead">Implementacion lista para Jupyter con XGBoost y NYC Taxi. Asume X_train, y_train, X_test, y_test del pipeline anterior.</p>
+  <hr class="rule">
+
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <button class="btn" onclick="showCode('grid')">GridSearchCV</button>
+    <button class="btn violet" onclick="showCode('rand')">RandomizedSearchCV</button>
+    <button class="btn brown" onclick="showCode('scipy')">Con scipy.stats</button>
+  </div>
+
+  <div id="codeGrid" class="code-block">
+<span class="cm"># GridSearchCV — viable solo con pocos parametros</span>
+<span class="cm"># Ejemplo con CART (48 combinaciones, manejable)</span>
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> GridSearchCV
+<span class="kw">from</span> sklearn.tree <span class="kw">import</span> DecisionTreeClassifier
+
+parametros = {
+    <span class="st">'max_depth'</span>        : [<span class="nm">4</span>, <span class="nm">6</span>, <span class="nm">8</span>, <span class="nm">12</span>],
+    <span class="st">'min_samples_split'</span>: [<span class="nm">20</span>, <span class="nm">100</span>, <span class="nm">500</span>],
+    <span class="st">'min_samples_leaf'</span> : [<span class="nm">10</span>, <span class="nm">50</span>],
+    <span class="st">'criterion'</span>        : [<span class="st">'gini'</span>, <span class="st">'entropy'</span>],
+}
+<span class="cm"># 4 x 3 x 2 x 2 = 48 combinaciones x 5 folds = 240 entrenamientos</span>
+
+grid = GridSearchCV(
+    estimator=DecisionTreeClassifier(random_state=<span class="nm">42</span>),
+    param_grid=parametros,
+    scoring=<span class="st">'roc_auc'</span>,
+    cv=<span class="nm">5</span>,
+    n_jobs=<span class="nm">-1</span>,
+    verbose=<span class="nm">1</span>
+)
+grid.fit(X_train, y_train)
+
+print(<span class="st">"Mejores parametros:"</span>, grid.best_params_)
+print(f<span class="st">"Mejor AUC-ROC (CV): {grid.best_score_:.4f}"</span>)
+  </div>
+
+  <div id="codeRand" class="code-block" style="display:none">
+<span class="cm"># RandomizedSearchCV — para XGBoost con NYC Taxi</span>
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> RandomizedSearchCV
+<span class="kw">import</span> xgboost <span class="kw">as</span> xgb
+
+neg = (y_train == <span class="nm">0</span>).sum()
+pos = (y_train == <span class="nm">1</span>).sum()
+
+parametros_xgb = {
+    <span class="st">'n_estimators'</span>    : [<span class="nm">200</span>, <span class="nm">300</span>, <span class="nm">500</span>],
+    <span class="st">'learning_rate'</span>   : [<span class="nm">0.01</span>, <span class="nm">0.05</span>, <span class="nm">0.1</span>],
+    <span class="st">'max_depth'</span>       : [<span class="nm">3</span>, <span class="nm">4</span>, <span class="nm">6</span>],
+    <span class="st">'subsample'</span>       : [<span class="nm">0.7</span>, <span class="nm">0.8</span>, <span class="nm">1.0</span>],
+    <span class="st">'colsample_bytree'</span>: [<span class="nm">0.6</span>, <span class="nm">0.8</span>, <span class="nm">1.0</span>],
+    <span class="st">'gamma'</span>           : [<span class="nm">0</span>, <span class="nm">0.1</span>, <span class="nm">0.5</span>],
+    <span class="st">'reg_alpha'</span>       : [<span class="nm">0</span>, <span class="nm">0.1</span>, <span class="nm">0.5</span>],
+    <span class="st">'reg_lambda'</span>      : [<span class="nm">0.5</span>, <span class="nm">1.0</span>, <span class="nm">2.0</span>],
+}
+<span class="cm"># 3^8 = 6,561 combinaciones con GridSearch</span>
+<span class="cm"># Con RandomizedSearch: solo 20 combinaciones</span>
+
+xgb_base = xgb.XGBClassifier(
+    scale_pos_weight=neg/pos,
+    eval_metric=<span class="st">'auc'</span>,
+    random_state=<span class="nm">42</span>,
+    verbosity=<span class="nm">0</span>
+)
+
+random_search = RandomizedSearchCV(
+    estimator=xgb_base,
+    param_distributions=parametros_xgb,
+    n_iter=<span class="nm">20</span>,
+    scoring=<span class="st">'roc_auc'</span>,
+    cv=<span class="nm">3</span>,
+    n_jobs=<span class="nm">-1</span>,
+    verbose=<span class="nm">1</span>,
+    random_state=<span class="nm">42</span>
+)
+random_search.fit(X_train, y_train)
+
+print(<span class="st">"Mejores parametros:"</span>, random_search.best_params_)
+print(f<span class="st">"Mejor AUC-ROC (CV): {random_search.best_score_:.4f}"</span>)
+
+xgb_final   = random_search.best_estimator_
+y_pred_xgb  = xgb_final.predict(X_test)
+y_proba_xgb = xgb_final.predict_proba(X_test)[:, <span class="nm">1</span>]
+  </div>
+
+  <div id="codeScipy" class="code-block" style="display:none">
+<span class="cm"># RandomizedSearchCV con distribuciones continuas (scipy.stats)</span>
+<span class="cm"># Explora el espacio de forma mas rica que con listas discretas</span>
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> RandomizedSearchCV
+<span class="kw">from</span> scipy.stats <span class="kw">import</span> uniform, randint, loguniform
+<span class="kw">import</span> xgboost <span class="kw">as</span> xgb
+
+neg = (y_train == <span class="nm">0</span>).sum()
+pos = (y_train == <span class="nm">1</span>).sum()
+
+parametros_xgb = {
+    <span class="st">'n_estimators'</span>    : randint(<span class="nm">100</span>, <span class="nm">600</span>),
+    <span class="st">'learning_rate'</span>   : loguniform(<span class="nm">0.005</span>, <span class="nm">0.3</span>),  <span class="cm"># escala logaritmica</span>
+    <span class="st">'max_depth'</span>       : randint(<span class="nm">3</span>, <span class="nm">8</span>),
+    <span class="st">'subsample'</span>       : uniform(<span class="nm">0.6</span>, <span class="nm">0.4</span>),        <span class="cm"># uniforme en [0.6, 1.0]</span>
+    <span class="st">'colsample_bytree'</span>: uniform(<span class="nm">0.5</span>, <span class="nm">0.5</span>),        <span class="cm"># uniforme en [0.5, 1.0]</span>
+    <span class="st">'gamma'</span>           : uniform(<span class="nm">0</span>, <span class="nm">1</span>),
+    <span class="st">'reg_alpha'</span>       : loguniform(<span class="nm">1e-4</span>, <span class="nm">1</span>),
+    <span class="st">'reg_lambda'</span>      : loguniform(<span class="nm">0.1</span>, <span class="nm">10</span>),
+}
+
+xgb_base = xgb.XGBClassifier(
+    scale_pos_weight=neg/pos,
+    eval_metric=<span class="st">'auc'</span>,
+    random_state=<span class="nm">42</span>,
+    verbosity=<span class="nm">0</span>
+)
+
+random_search = RandomizedSearchCV(
+    estimator=xgb_base,
+    param_distributions=parametros_xgb,
+    n_iter=<span class="nm">50</span>,         <span class="cm"># mas iteraciones = mejor resultado</span>
+    scoring=<span class="st">'roc_auc'</span>,
+    cv=<span class="nm">3</span>,
+    n_jobs=<span class="nm">-1</span>,
+    verbose=<span class="nm">1</span>,
+    random_state=<span class="nm">42</span>
+)
+random_search.fit(X_train, y_train)
+
+print(<span class="st">"Mejores parametros:"</span>, random_search.best_params_)
+print(f<span class="st">"Mejor AUC-ROC (CV): {random_search.best_score_:.4f}"</span>)
+  </div>
+
+  <div class="callout" style="margin-top:16px">
+    <p><strong>loguniform vs uniform:</strong> para <code>learning_rate</code> conviene muestrear en escala logaritmica porque la diferencia entre 0.001 y 0.01 es tan importante como entre 0.01 y 0.1. Con <code>uniform</code> casi nunca se explorarian valores pequenos.</p>
+  </div>
+</section>
+
+<script>
+(function() {
+
+  // ── NAVEGACION ─────────────────────────────────────────────────────
+  function goTo(n, btn) {
+    document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('slide-' + n).classList.add('active');
+    btn.classList.add('active');
+    if (n === 2) initGrid();
+    if (n === 4) { redrawMaps(); }
+    if (n === 5) { initSim(); }
+  }
+  window.goTo = goTo;
+
+  // ── SLIDE 2: GRID INTERACTIVO ──────────────────────────────────────
+  function initGrid() {
+    const depths = [3, 4, 6];
+    const lrs    = [0.01, 0.05, 0.10];
+    const cont   = document.getElementById('gridViz');
+    if (!cont || cont.dataset.built) return;
+    cont.dataset.built = '1';
+
+    let html = '<table style="border-collapse:collapse;font-size:0.78rem">';
+    html += '<tr><th style="padding:6px 10px;background:var(--ink);color:#fff;font-family:\'Inconsolata\',monospace;font-size:0.68rem"></th>';
+    lrs.forEach(lr => {
+      html += `<th style="padding:6px 10px;background:var(--ink);color:#fff;font-family:'Inconsolata',monospace;font-size:0.68rem">lr=${lr}</th>`;
+    });
+    html += '</tr>';
+    depths.forEach(d => {
+      html += `<tr><td style="padding:6px 10px;font-family:'Inconsolata',monospace;font-size:0.72rem;border:var(--rule);background:#f8f8f6">depth=${d}</td>`;
+      lrs.forEach(lr => {
+        html += `<td style="padding:6px 10px;border:var(--rule);text-align:center;cursor:pointer;transition:background .15s"
+          onmouseenter="this.style.background='var(--accent3)'"
+          onmouseleave="this.style.background=''"
+          onclick="document.getElementById('gridInfo').innerHTML='Evaluando: max_depth=${d}, learning_rate=${lr} &rarr; 3 folds = 3 entrenamientos en esta celda'">
+          <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--ink)"></span>
+        </td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</table>';
+    cont.innerHTML = html;
+    document.getElementById('gridInfo').innerHTML = 'Haz clic en una celda para ver la combinacion evaluada.';
+  }
+
+  // ── SLIDE 4: MAPAS TOPOGRAFICOS ────────────────────────────────────
+  let showValley = false;
+  function toggleValley() { showValley = !showValley; redrawMaps(); }
+  window.toggleValley = toggleValley;
+
+  function redrawMaps() {
+    drawTopMap('gridMap', 'grid');
+    drawTopMap('randMap', 'rand');
+  }
+  window.redrawMaps = redrawMaps;
+
+  function drawTopMap(id, type) {
+    const cv = document.getElementById(id);
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    ctx.clearRect(0, 0, W, H);
+
+    // draw heatmap background
+    const idata = ctx.createImageData(W, H);
+    const valleyX = 0.35, valleyY = 0.6;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const nx = x/W, ny = y/H;
+        const d1 = Math.sqrt((nx-valleyX)**2 + (ny-valleyY)**2);
+        const d2 = Math.sqrt((nx-0.75)**2 + (ny-0.2)**2);
+        const val = Math.exp(-d1*4) * 0.7 + Math.exp(-d2*3) * 0.3;
+        const r = Math.round(240 - val * 180);
+        const g = Math.round(240 - val * 80);
+        const b = Math.round(240 - val * 20);
+        const idx = (y * W + x) * 4;
+        idata.data[idx]   = r;
+        idata.data[idx+1] = g;
+        idata.data[idx+2] = b;
+        idata.data[idx+3] = 255;
+      }
+    }
+    ctx.putImageData(idata, 0, 0);
+
+    // draw valley marker
+    if (showValley) {
+      ctx.beginPath();
+      ctx.arc(valleyX*W, valleyY*H, 18, 0, Math.PI*2);
+      ctx.strokeStyle = '#c0392b';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4,3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#c0392b';
+      ctx.font = 'bold 10px Inconsolata';
+      ctx.fillText('optimo', valleyX*W - 20, valleyY*H - 22);
+    }
+
+    // draw points
+    if (type === 'grid') {
+      const xs = [0.1, 0.3, 0.5, 0.7, 0.9];
+      const ys = [0.1, 0.3, 0.5, 0.7, 0.9];
+      ctx.fillStyle = '#1a1a1a';
+      xs.forEach(x => ys.forEach(y => {
+        ctx.beginPath();
+        ctx.arc(x*W, y*H, 4, 0, Math.PI*2);
+        ctx.fill();
+      }));
+    } else {
+      // random points seeded
+      const pts = [[0.12,0.78],[0.38,0.62],[0.55,0.18],[0.72,0.85],[0.28,0.35],
+                   [0.85,0.45],[0.18,0.52],[0.65,0.68],[0.42,0.12],[0.90,0.22],
+                   [0.33,0.88],[0.58,0.42],[0.78,0.65],[0.08,0.28],[0.50,0.75],
+                   [0.22,0.15],[0.68,0.32],[0.45,0.55],[0.82,0.08],[0.15,0.92]];
+      pts.forEach(([x,y]) => {
+        ctx.beginPath();
+        ctx.arc(x*W, y*H, 4, 0, Math.PI*2);
+        ctx.fillStyle = '#2e5da0';
+        ctx.fill();
+      });
+    }
+
+    // labels
+    ctx.fillStyle = '#555';
+    ctx.font = '11px Inconsolata';
+    ctx.fillText('learning_rate', 5, H - 8);
+    ctx.save();
+    ctx.translate(12, H/2);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillText('max_depth', 0, 0);
+    ctx.restore();
+  }
+
+  // ── SLIDE 5: SIMULADOR ─────────────────────────────────────────────
+  function initSim() {
+    ['nParams','nVals','nFolds','nIter','minPer'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.oninput = updateSim;
+    });
+    updateSim();
+  }
+
+  function formatTime(mins) {
+    if (mins < 60) return `${Math.round(mins)} min`;
+    if (mins < 1440) return `${(mins/60).toFixed(1)} hrs`;
+    if (mins < 43200) return `${(mins/1440).toFixed(1)} dias`;
+    return `${(mins/43200).toFixed(1)} meses`;
+  }
+
+  function updateSim() {
+    const nP   = parseInt(document.getElementById('nParams').value);
+    const nV   = parseInt(document.getElementById('nVals').value);
+    const nF   = parseInt(document.getElementById('nFolds').value);
+    const nI   = parseInt(document.getElementById('nIter').value);
+    const mPer = parseInt(document.getElementById('minPer').value);
+
+    document.getElementById('nParamsLabel').textContent  = nP;
+    document.getElementById('nValsLabel').textContent    = nV;
+    document.getElementById('nFoldsLabel').textContent   = nF;
+    document.getElementById('nIterLabel').textContent    = nI;
+    document.getElementById('minLabel').textContent      = mPer;
+
+    const gridComb = Math.pow(nV, nP);
+    const gridFits = gridComb * nF;
+    const randFits = nI * nF;
+    const gridMins = gridFits * mPer;
+    const randMins = randFits * mPer;
+    const ratio    = gridComb / nI;
+
+    document.getElementById('gridComb').textContent = gridComb.toLocaleString();
+    document.getElementById('randComb').textContent = nI;
+    document.getElementById('gridTime').textContent = formatTime(gridMins);
+    document.getElementById('randTime').textContent = formatTime(randMins);
+
+    document.getElementById('calcDetail').innerHTML =
+      `Grid: ${nV}^${nP} = ${gridComb.toLocaleString()} combinaciones x ${nF} folds = ${gridFits.toLocaleString()} entrenamientos<br>` +
+      `Rand: ${nI} combinaciones x ${nF} folds = ${randFits} entrenamientos<br>` +
+      `RandomizedSearch evalua el ${(nI/gridComb*100).toFixed(2)}% del espacio de Grid<br>` +
+      `Grid es ${ratio.toFixed(0)}x mas costoso que Rand`;
+
+    const msg = gridMins > 1440
+      ? `GridSearch tardaria <strong>${formatTime(gridMins)}</strong> — inviable. RandomizedSearch con n_iter=${nI} tarda <strong>${formatTime(randMins)}</strong>.`
+      : gridMins > 120
+      ? `GridSearch tardaria <strong>${formatTime(gridMins)}</strong> — costoso. RandomizedSearch es ${ratio.toFixed(0)}x mas rapido.`
+      : `Con esta configuracion GridSearch es factible (${formatTime(gridMins)}). Considera usarlo si quieres garantia de optimo.`;
+    document.getElementById('veredicto').innerHTML = msg;
+
+    drawSim(gridComb, nI, gridMins, randMins);
+  }
+
+  function drawSim(gridC, randC, gridM, randM) {
+    const cv = document.getElementById('simCanvas');
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const maxVal = Math.max(gridC, randC, 1);
+    const pad = {t:20, r:20, b:40, l:60};
+    const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+
+    // bars
+    const bw = pw / 4;
+    [[gridC, '#1a1a1a', 'Grid\nComb.', bw*0.5],
+     [randC, '#5c4197', 'Rand\nComb.', bw*1.5],
+     [Math.min(gridM, maxVal), '#7b4f2e', 'Grid\nTiempo', bw*2.7],
+     [Math.min(randM, maxVal), '#2d6a4f', 'Rand\nTiempo', bw*3.7]
+    ].forEach(([val, color, label, x]) => {
+      const bh = Math.min(val / maxVal, 1) * ph;
+      ctx.fillStyle = color;
+      ctx.fillRect(pad.l + x - bw*0.35, pad.t + ph - bh, bw*0.7, bh);
+      ctx.fillStyle = '#555';
+      ctx.font = '9px Inconsolata';
+      label.split('\n').forEach((line, i) => {
+        ctx.fillText(line, pad.l + x - bw*0.35 + 2, pad.t + ph + 12 + i*11);
+      });
+    });
+
+    // y axis label
+    ctx.fillStyle = '#aaa';
+    ctx.font = '10px Inconsolata';
+    ctx.fillText('escala relativa', 2, pad.t + ph/2);
+  }
+
+  // ── SLIDE 7: TABS ─────────────────────────────────────────────────
+  function showCode(type) {
+    ['Grid','Rand','Scipy'].forEach(t => {
+      const el = document.getElementById('code' + t);
+      if (el) el.style.display = 'none';
+    });
+    const map = {grid:'Grid', rand:'Rand', scipy:'Scipy'};
+    const el = document.getElementById('code' + map[type]);
+    if (el) el.style.display = 'block';
+  }
+  window.showCode = showCode;
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regresion Logistica — Guia Didactica</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --ink: #0d0d0d;
+    --mid: #505050;
+    --soft: #888888;
+    --light: #e6e6e6;
+    --rule: 1px solid #ddd;
+    --accent: #1a3a5c;
+    --accent2: #2560a0;
+    --accent3: #5b9bd5;
+    --accent4: #d0e4f7;
+    --danger: #c0392b;
+    --success: #1e6b45;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  /* NAV STICKY */
+  .lg-nav {
+    position: sticky; top: 0;
+    background: #ffffff;
+    border-bottom: var(--rule);
+    display: flex; align-items: center;
+    justify-content: space-between;
+    padding: 0 32px; height: 50px;
+    z-index: 100;
+  }
+  .nav-brand { font-family: 'Playfair Display', serif; font-size: 0.92rem; letter-spacing: 0.01em; }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .nav-pills { display: flex; gap: 4px; }
+  .nav-pill {
+    width: 25px; height: 25px; border-radius: 50%;
+    border: 1.5px solid var(--light); background: transparent;
+    cursor: pointer; font-size: 0.66rem;
+    font-family: 'IBM Plex Mono', monospace; color: var(--soft);
+    transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+  }
+  .nav-pill:hover { border-color: var(--accent2); color: var(--accent2); }
+  .nav-pill.active { background: var(--accent); border-color: var(--accent); color: white; }
+  .nav-counter { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: #bbb; min-width: 34px; }
+
+  /* PROGRESS STICKY */
+  .lg-progress-wrap { height: 2px; background: var(--light); position: sticky; top: 50px; z-index: 99; }
+  #lg-progress { height: 100%; background: var(--accent2); transition: width 0.4s ease; width: 0%; }
+
+  /* SLIDES */
+  .slide {
+    display: none; min-height: 80vh;
+    padding: 44px 60px 72px;
+    flex-direction: column; justify-content: center;
+    animation: fadeSlide 0.4s ease both;
+  }
+  .slide.active { display: flex; }
+  @keyframes fadeSlide { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+  /* BOTTOM NAV STICKY */
+  .lg-bottom-nav {
+    position: sticky; bottom: 0;
+    background: #ffffff; border-top: var(--rule);
+    display: flex; align-items: center;
+    justify-content: flex-end; gap: 10px;
+    padding: 9px 32px; z-index: 100;
+  }
+  .btn {
+    padding: 8px 20px; border: 1.5px solid var(--ink);
+    background: transparent; color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.8rem; font-weight: 500;
+    cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em;
+  }
+  .btn:hover { background: var(--ink); color: white; }
+  .btn:disabled { opacity: 0.28; cursor: not-allowed; }
+  .btn:disabled:hover { background: transparent; color: var(--ink); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  .btn.primary:hover { background: var(--accent2); }
+
+  /* TYPOGRAPHY */
+  .slide-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent2); margin-bottom: 12px; }
+  h2 { font-family: 'Playfair Display', serif; font-size: clamp(1.6rem, 3.2vw, 2.6rem); line-height: 1.15; margin-bottom: 14px; letter-spacing: -0.01em; }
+  h2 em { font-style: italic; color: var(--accent2); }
+  h3 { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.95rem; font-weight: 600; margin-bottom: 7px; color: var(--ink); }
+  p { color: var(--mid); max-width: 700px; margin-bottom: 9px; }
+  .lead { font-size: 1.02rem; color: var(--mid); max-width: 660px; font-weight: 300; line-height: 1.75; }
+  .rule { border: none; border-top: var(--rule); margin: 22px 0; }
+
+  .callout { border-left: 3px solid var(--accent2); padding: 13px 17px; background: #f0f6fd; max-width: 700px; margin: 14px 0; }
+  .callout p { margin: 0; color: var(--ink); font-size: 0.92rem; }
+  .callout.warn { border-color: var(--danger); background: #fdf0ef; }
+  .callout.success { border-color: var(--success); background: #f0faf4; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin: 18px 0; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin: 18px 0; }
+
+  .card { border: var(--rule); padding: 18px; }
+  .card-num { font-family: 'IBM Plex Mono', monospace; font-size: 1.6rem; color: var(--accent4); line-height: 1; margin-bottom: 8px; }
+
+  /* COVER */
+  #slide-1 { position: relative; overflow: hidden; }
+  .cover-lines { position: absolute; top:0; left:0; right:0; bottom:0; background-image: repeating-linear-gradient(0deg, transparent, transparent 59px, var(--light) 59px, var(--light) 60px); opacity: 0.35; }
+  .cover-content { position: relative; z-index: 1; }
+  .cover-tag { display: inline-block; border: 1.5px solid var(--accent2); padding: 4px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent2); margin-bottom: 20px; }
+  .cover-h1 { font-family: 'Playfair Display', serif; font-size: clamp(2.4rem, 6vw, 4.8rem); line-height: 1.0; letter-spacing: -0.022em; margin-bottom: 5px; }
+  .cover-h1 em { font-style: italic; color: var(--accent2); }
+  .cover-sub { font-size: 1rem; color: var(--mid); font-weight: 300; max-width: 520px; margin-top: 14px; line-height: 1.75; }
+  .cover-meta { margin-top: 32px; display: flex; gap: 32px; flex-wrap: wrap; }
+  .cover-meta-item { font-family: 'IBM Plex Mono', monospace; font-size: 0.66rem; color: var(--soft); letter-spacing: 0.05em; }
+  .cover-meta-item strong { display: block; font-size: 0.95rem; color: var(--ink); font-family: 'Playfair Display', serif; font-weight: 400; letter-spacing: 0; }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: 0.84rem; margin: 14px 0; }
+  th { border-bottom: 2px solid var(--ink); padding: 7px 10px; text-align: left; font-family: 'IBM Plex Mono', monospace; font-size: 0.66rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--soft); }
+  td { border-bottom: var(--rule); padding: 7px 10px; color: var(--mid); vertical-align: top; }
+  td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; color: var(--accent2); font-weight: 500; }
+  tr:hover td { background: #f7fafd; }
+
+  /* SIGMOID */
+  .sigmoid-canvas-wrap { border: var(--rule); padding: 10px; display: inline-block; background: #fafafa; }
+  .sigmoid-controls { display: flex; gap: 24px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+  .ctrl-group { display: flex; flex-direction: column; gap: 4px; }
+  .ctrl-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: var(--mid); letter-spacing: 0.05em; }
+  input[type=range] { width: 130px; accent-color: var(--accent2); cursor: pointer; }
+  .ctrl-val { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; color: var(--accent); font-weight: 500; }
+  .sigmoid-formula { font-family: 'IBM Plex Mono', monospace; font-size: 0.86rem; color: var(--accent); background: var(--accent4); padding: 8px 14px; display: inline-block; margin: 9px 0; border: 1px solid var(--accent3); }
+
+  /* ODDS CALC */
+  .odds-input-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
+  .odds-field { display: flex; flex-direction: column; gap: 4px; }
+  .odds-field label { font-family: 'IBM Plex Mono', monospace; font-size: 0.66rem; color: var(--mid); letter-spacing: 0.05em; }
+  .odds-field input[type=number] { width: 110px; padding: 6px 9px; border: var(--rule); font-family: 'IBM Plex Mono', monospace; font-size: 0.84rem; color: var(--ink); background: white; outline: none; }
+  .odds-field input:focus { border-color: var(--accent2); }
+  .odds-btn { padding: 7px 18px; background: var(--accent); color: white; border: none; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif; font-size: 0.8rem; font-weight: 500; transition: background 0.2s; }
+  .odds-btn:hover { background: var(--accent2); }
+  .odds-result { border: var(--rule); padding: 14px 18px; max-width: 500px; display: none; }
+  .odds-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: var(--rule); font-size: 0.84rem; }
+  .odds-row:last-child { border-bottom: none; }
+  .odds-key { color: var(--soft); font-family: 'IBM Plex Mono', monospace; font-size: 0.74rem; }
+  .odds-val { font-weight: 600; color: var(--ink); font-family: 'IBM Plex Mono', monospace; }
+  .prob-bar-wrap { margin-top: 10px; }
+  .prob-bar-bg { height: 22px; background: var(--light); overflow: hidden; }
+  .prob-bar-fill { height: 100%; background: var(--accent2); transition: width 0.6s ease; display: flex; align-items: center; padding-left: 7px; font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: white; font-weight: 500; }
+
+  /* METRICS */
+  .metrics-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin: 18px 0; }
+  .metric-card { border: var(--rule); padding: 14px; text-align: center; }
+  .metric-name { font-family: 'IBM Plex Mono', monospace; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--soft); margin-bottom: 7px; }
+  .metric-val { font-family: 'Playfair Display', serif; font-size: 1.7rem; color: var(--accent); line-height: 1; }
+  .metric-desc { font-size: 0.76rem; color: var(--soft); margin-top: 5px; }
+
+  /* CONFUSION MATRIX */
+  .cm-table { border-collapse: collapse; }
+  .cm-table td, .cm-table th { width: 76px; height: 56px; text-align: center; vertical-align: middle; font-size: 0.8rem; border: 1px solid var(--light); }
+  .cm-table th { background: transparent; border: none; font-size: 0.66rem; }
+  .cm-tp { background: #d4edda; color: #155724; font-weight: 600; font-size: 0.96rem; }
+  .cm-tn { background: #d4edda; color: #155724; font-weight: 600; font-size: 0.96rem; }
+  .cm-fp { background: #f8d7da; color: #721c24; font-weight: 600; font-size: 0.96rem; }
+  .cm-fn { background: #f8d7da; color: #721c24; font-weight: 600; font-size: 0.96rem; }
+  .cm-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: var(--soft); }
+
+  /* COEF CHART */
+  .coef-row { display: flex; align-items: center; gap: 12px; margin: 6px 0; }
+  .coef-name { font-family: 'IBM Plex Mono', monospace; font-size: 0.74rem; color: var(--mid); width: 172px; flex-shrink: 0; }
+  .coef-bar-bg { flex: 1; height: 17px; background: var(--light); }
+  .coef-bar-pos { height: 100%; background: var(--accent2); transition: width 0.8s ease; }
+  .coef-bar-neg { height: 100%; background: var(--danger); transition: width 0.8s ease; }
+  .coef-val { font-family: 'IBM Plex Mono', monospace; font-size: 0.74rem; width: 60px; text-align: right; }
+
+  /* CODE BLOCK — fondo blanco estilo GitHub */
+  .code-block {
+    background: #f6f8fa;
+    color: #24292e;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.74rem;
+    padding: 16px 20px;
+    line-height: 1.75;
+    overflow-x: auto;
+    margin: 14px 0;
+    max-width: 800px;
+    border: 1px solid #e1e4e8;
+    border-radius: 2px;
+  }
+  .kw  { color: #d73a49; font-weight: 500; }   /* keywords: import, from, print, for, in */
+  .st  { color: #032f62; }                      /* strings */
+  .cm-c { color: #6a737d; font-style: italic; } /* comments */
+  .nb  { color: #005cc5; }                      /* numbers / builtins */
+  .fn  { color: #6f42c1; }                      /* function names */
+
+  .tag { display: inline-block; border: 1px solid var(--light); padding: 2px 8px; font-family: 'IBM Plex Mono', monospace; font-size: 0.66rem; color: var(--soft); margin: 3px; }
+  .tag.blue { border-color: var(--accent3); color: var(--accent); background: var(--accent4); }
+
+  /* EXPLAIN BLOCKS */
+  .explain-block { display: flex; gap: 14px; margin-bottom: 16px; align-items: flex-start; }
+  .explain-step {
+    flex-shrink: 0; width: 26px; height: 26px;
+    background: var(--accent); color: white;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem; font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 2px;
+  }
+  .explain-example {
+    background: var(--accent4); border-left: 3px solid var(--accent2);
+    padding: 9px 13px; font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem; line-height: 1.6; margin: 7px 0; color: var(--ink);
+  }
+  .explain-formula {
+    background: #f6f8fa; color: var(--accent);
+    border: 1px solid #e1e4e8;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem; padding: 10px 14px; margin: 8px 0; line-height: 1.5;
+  }
+  code {
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem;
+    background: var(--accent4); padding: 1px 5px; color: var(--accent);
+  }
+
+  /* OR / AME TABLES */
+  .stat-table { font-size: 0.80rem; margin: 10px 0; }
+  .stat-table th { font-size: 0.64rem; background: #f5f8fc; }
+  .stat-table .sig-cell  { color: var(--success); font-weight: 600; }
+  .stat-table .nsig-cell { color: var(--soft); }
+  .interp-box { border-left: 3px solid var(--accent2); background: #f0f6fd; padding: 10px 14px; margin: 8px 0; font-size: 0.84rem; color: var(--ink); }
+  .interp-box.warn  { border-color: var(--danger);  background: #fdf0ef; }
+  .interp-box.ok    { border-color: var(--success); background: #f0faf4; }
+  .interp-box strong { display: block; margin-bottom: 3px; }
+
+  @media (max-width: 680px) {
+    .slide { padding: 26px 16px 68px; }
+    .grid-2, .grid-3, .metrics-grid { grid-template-columns: 1fr; }
+    .nav-pills { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="lg-nav">
+  <span class="nav-brand">Regresion Logistica</span>
+  <div class="nav-right">
+    <div class="nav-pills" id="navPills"></div>
+    <span class="nav-counter" id="navCounter">1 / 10</span>
+  </div>
+</nav>
+<div class="lg-progress-wrap"><div id="lg-progress"></div></div>
+
+<!-- SLIDE 1: PORTADA -->
+<section class="slide active" id="slide-1">
+  <div class="cover-lines"></div>
+  <div class="cover-content">
+    <div class="cover-tag">Marketing y Comportamiento del Consumidor — Clasificacion Binaria</div>
+    <div class="cover-h1">Regresion<br><em>Logistica</em></div>
+    <p class="cover-sub">El modelo de clasificacion mas interpretable del aprendizaje automatico. Fundamento matematico, supuestos, coeficientes, Odds Ratios y efectos marginales aplicados a la prediccion de compra de tablets.</p>
+    <div class="cover-meta">
+      <div class="cover-meta-item"><strong>11</strong>Secciones</div>
+      <div class="cover-meta-item"><strong>Interactivo</strong>Demos en vivo</div>
+      <div class="cover-meta-item"><strong>statsmodels</strong>Python</div>
+      <div class="cover-meta-item"><strong>400 obs.</strong>Dataset Tablets</div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 2: QUE ES -->
+<section class="slide" id="slide-2">
+  <div class="slide-label">01 — Concepto</div>
+  <h2>Que es la Regresion <em>Logistica</em>?</h2>
+  <p class="lead">A pesar del nombre, es un modelo de <strong>clasificacion</strong>, no de regresion. Predice la probabilidad de que un evento ocurra.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>Idea central</h3>
+      <p>Toma una combinacion lineal de variables y la transforma mediante la funcion sigmoide para obtener un valor entre 0 y 1 — una probabilidad.</p>
+      <div class="callout">
+        <p><strong>Pregunta tipica:</strong> Dado el genero, la edad y el salario estimado de una persona, cual es la probabilidad de que compre una tablet?</p>
+      </div>
+      <div style="margin-top:14px">
+        <span class="tag blue">Clasificacion binaria</span>
+        <span class="tag blue">Probabilidades</span>
+        <span class="tag blue">Interpretable</span>
+        <span class="tag blue">Lineal en log-odds</span>
+      </div>
+    </div>
+    <div>
+      <h3>Diferencia clave con regresion lineal</h3>
+      <table>
+        <thead><tr><th>Aspecto</th><th>Lineal</th><th>Logistica</th></tr></thead>
+        <tbody>
+          <tr><td>Salida</td><td>Valor continuo</td><td>Probabilidad [0,1]</td></tr>
+          <tr><td>Variable Y</td><td>Continua</td><td>Binaria (0/1)</td></tr>
+          <tr><td>Funcion</td><td>Identidad</td><td>Sigmoide</td></tr>
+          <tr><td>Estimacion</td><td>Min. Cuadrados</td><td>Max. Verosimilitud</td></tr>
+          <tr><td>Supuestos</td><td>Normalidad residuos</td><td>Independencia obs.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 3: SIGMOIDE -->
+<section class="slide" id="slide-3">
+  <div class="slide-label">02 — Matematica</div>
+  <h2>La funcion <em>Sigmoide</em></h2>
+  <p class="lead">Es el corazon del modelo. Convierte cualquier numero real en una probabilidad entre 0 y 1.</p>
+  <hr class="rule">
+  <div id="sigmoidFormula" class="sigmoid-formula">P(Compra=1) = 1 / (1 + e^-(b0 + b1*x))</div>
+  <div class="sigmoid-canvas-wrap">
+    <canvas id="sigmoidCanvas" width="500" height="230"></canvas>
+  </div>
+  <div class="sigmoid-controls">
+    <div class="ctrl-group">
+      <span class="ctrl-label">Intercepto (b0)</span>
+      <input type="range" id="slB0" min="-4" max="4" step="0.1" value="0">
+      <span class="ctrl-val" id="valB0">0.0</span>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Coeficiente (b1)</span>
+      <input type="range" id="slB1" min="-3" max="3" step="0.1" value="1">
+      <span class="ctrl-val" id="valB1">1.0</span>
+    </div>
+    <div style="border-left:var(--rule); padding-left:20px">
+      <p style="font-size:0.8rem; margin:0 0 5px 0; color:var(--ink)">Propiedades:</p>
+      <p style="font-size:0.8rem; color:var(--soft); margin:0">— Siempre entre 0 y 1</p>
+      <p style="font-size:0.8rem; color:var(--soft); margin:0">— Forma de S (sigmoide)</p>
+      <p style="font-size:0.8rem; color:var(--soft); margin:0">— b0 desplaza la curva</p>
+      <p style="font-size:0.8rem; color:var(--soft); margin:0">— b1 controla la pendiente</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 4: ODDS -->
+<section class="slide" id="slide-4">
+  <div class="slide-label">03 — Interpretacion</div>
+  <h2>Odds, Log-Odds <em>y Coeficientes</em></h2>
+  <p class="lead">Los coeficientes del logit se interpretan como cambios en el log-odds. Aqui explicamos cada concepto con el ejemplo de compra de tablets.</p>
+  <hr class="rule">
+  <div class="grid-2" style="margin-bottom:0">
+    <div>
+      <div class="explain-block">
+        <div class="explain-step">1</div>
+        <div>
+          <h3>Probabilidad — lo que ya conoces</h3>
+          <p>Es la chance de que algo pase, entre 0 y 1.</p>
+          <div class="explain-example">
+            De 100 personas similares (mujer, 45 anos, $90k/ano), 70 compraron la tablet.<br>
+            <strong>Probabilidad = 70/100 = 0.70 &rarr; "70% de chance de compra"</strong>
+          </div>
+        </div>
+      </div>
+      <div class="explain-block">
+        <div class="explain-step">2</div>
+        <div>
+          <h3>Odds — exitos vs fracasos</h3>
+          <p>En lugar de cuantos compraron, pregunta cuantos compraron <em>versus</em> cuantos NO compraron.</p>
+          <div class="explain-example">
+            Odds = 70 que SI compraron / 30 que NO compraron = <strong>2.33</strong><br>
+            <span style="color:var(--soft); font-size:0.82rem">"Por cada persona que no compra, hay 2.33 que si compran"</span>
+          </div>
+          <p style="font-size:0.84rem; margin-top:6px">Formula: <strong>Odds = p / (1-p) = 0.70 / 0.30 = 2.33</strong></p>
+        </div>
+      </div>
+      <div class="explain-block">
+        <div class="explain-step">3</div>
+        <div>
+          <h3>Log-Odds — por que el logit los necesita</h3>
+          <p>Las odds van de 0 a infinito. El logaritmo las simetriza alrededor de 0, permitiendo una ecuacion lineal.</p>
+          <div class="explain-example">
+            Log-Odds = ln(2.33) = <strong>0.847</strong>
+          </div>
+          <table style="margin-top:10px; font-size:0.8rem">
+            <thead><tr><th>Situacion</th><th>Prob.</th><th>Odds</th><th>Log-Odds</th></tr></thead>
+            <tbody>
+              <tr><td>Muy improbable</td><td>0.10</td><td>0.11</td><td style="color:var(--danger)">-2.20</td></tr>
+              <tr><td>Neutral</td><td>0.50</td><td>1.00</td><td>0.00</td></tr>
+              <tr><td>Probable</td><td>0.70</td><td>2.33</td><td style="color:var(--success)">+0.85</td></tr>
+              <tr><td>Muy probable</td><td>0.90</td><td>9.00</td><td style="color:var(--success)">+2.20</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="explain-block">
+        <div class="explain-step">4</div>
+        <div>
+          <h3>Ecuacion del modelo logit — tablets</h3>
+          <div class="explain-formula">
+            log-odds = -12.784 + 0.334*Gender + 0.237*Age + 3.644e-05*Salary
+          </div>
+        </div>
+      </div>
+      <div class="explain-block">
+        <div class="explain-step">5</div>
+        <div>
+          <h3>El coeficiente de Age en lenguaje de compras</h3>
+          <p>Si <strong>b_Age = 0.237</strong>:</p>
+          <div class="explain-example">
+            Odds Ratio = e^0.237 = <strong>1.267</strong><br>
+            <span style="color:var(--success); font-size:0.84rem">Cada ano adicional de edad multiplica por 1.267 las chances de comprar la tablet (+26.7%).</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <h3>Calculadora interactiva del modelo</h3>
+        <p style="font-size:0.8rem; color:var(--soft); margin-bottom:8px">Ingresa el perfil del cliente para predecir la probabilidad de compra:</p>
+        <div class="odds-input-row" style="margin-top:8px">
+          <div class="odds-field">
+            <label>GENERO (0=Mujer, 1=Hombre)</label>
+            <input type="number" id="oddsGender" value="1" min="0" max="1" step="1">
+          </div>
+          <div class="odds-field">
+            <label>EDAD (anos)</label>
+            <input type="number" id="oddsAge" value="45" step="1">
+          </div>
+          <div class="odds-field">
+            <label>SALARIO EST. ($)</label>
+            <input type="number" id="oddsSalary" value="100000" step="5000">
+          </div>
+          <button class="odds-btn" id="btnCalcOdds">Calcular</button>
+        </div>
+        <div class="odds-result" id="oddsResult">
+          <div class="odds-row"><span class="odds-key">Log-Odds (z)</span><span class="odds-val" id="orZ">—</span></div>
+          <div class="odds-row"><span class="odds-key">Odds</span><span class="odds-val" id="orOdds">—</span></div>
+          <div class="odds-row"><span class="odds-key">P(Compra=1)</span><span class="odds-val" id="orP">—</span></div>
+          <div class="odds-row"><span class="odds-key">Clasificacion</span><span class="odds-val" id="orClass">—</span></div>
+          <div class="prob-bar-wrap">
+            <div class="prob-bar-bg"><div class="prob-bar-fill" id="oddsBar" style="width:0%">0%</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 5: INTERPRETACION LOG-ODDS -->
+<section class="slide" id="slide-5">
+  <div class="slide-label">04 — Como leer el Log-Odds</div>
+  <h2>Como se interpreta el <em>Log-Odds</em></h2>
+  <p class="lead">El log-odds es el numero que el modelo predice directamente. Saber leerlo es clave para entender las predicciones de compra de tablets.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>La regla de los tres casos</h3>
+      <div class="explain-block" style="margin-top:12px">
+        <div class="explain-step" style="background:var(--danger)">-</div>
+        <div>
+          <h3 style="color:var(--danger)">Log-odds negativo</h3>
+          <p>Probabilidad menor al 50%. La persona probablemente NO compra la tablet.</p>
+          <div class="explain-example" style="border-color:var(--danger); background:#fff5f5">
+            Log-odds = -1.5 &rarr; Odds = 0.22 &rarr; <strong style="color:var(--danger)">P = 18%</strong>
+          </div>
+        </div>
+      </div>
+      <div class="explain-block">
+        <div class="explain-step" style="background:var(--soft)">0</div>
+        <div>
+          <h3 style="color:var(--soft)">Log-odds = 0</h3>
+          <p>Exactamente 50/50. El modelo no puede decidir en ningun sentido.</p>
+          <div class="explain-example" style="border-color:var(--soft); background:#f5f5f5">
+            Log-odds = 0.0 &rarr; Odds = 1.0 &rarr; <strong>P = 50%</strong>
+          </div>
+        </div>
+      </div>
+      <div class="explain-block">
+        <div class="explain-step" style="background:var(--success)">+</div>
+        <div>
+          <h3 style="color:var(--success)">Log-odds positivo</h3>
+          <p>Probabilidad mayor al 50%. La persona probablemente SI compra la tablet.</p>
+          <div class="explain-example" style="border-color:var(--success); background:#f0faf4">
+            Log-odds = +1.5 &rarr; Odds = 4.48 &rarr; <strong style="color:var(--success)">P = 82%</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- BLOQUE: DE DONDE VIENEN LAS CIFRAS -->
+      <div style="margin-top:18px; border-top: var(--rule); padding-top:16px">
+        <h3 style="margin-bottom:10px">De donde vienen estas cifras?</h3>
+        <div class="callout warn" style="margin-bottom:12px">
+          <p><strong>Importante:</strong> los valores -1.5, 0 y +1.5 son ejemplos pedagogicos con numeros redondos, <em>no provienen del modelo</em> de tablets. Solo ilustran los tres casos posibles del log-odds.</p>
+        </div>
+
+        <!-- PASO 1 -->
+        <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom:10px">
+          <div style="flex-shrink:0; width:22px; height:22px; background:var(--accent2); color:white; font-family:'IBM Plex Mono',monospace; font-size:0.68rem; display:flex; align-items:center; justify-content:center; margin-top:2px">1</div>
+          <div>
+            <p style="margin:0 0 4px 0; font-size:0.86rem; color:var(--ink)"><strong>Log-Odds &rarr; Odds:</strong> &nbsp; Odds = e<sup>log-odds</sup></p>
+            <div class="explain-example" style="padding:7px 12px; font-size:0.76rem">
+              e<sup>-1.5</sup> = <strong>0.22</strong> &nbsp;|&nbsp; e<sup>0.0</sup> = <strong>1.00</strong> &nbsp;|&nbsp; e<sup>+1.5</sup> = <strong>4.48</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- PASO 2 -->
+        <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom:10px">
+          <div style="flex-shrink:0; width:22px; height:22px; background:var(--accent2); color:white; font-family:'IBM Plex Mono',monospace; font-size:0.68rem; display:flex; align-items:center; justify-content:center; margin-top:2px">2</div>
+          <div>
+            <p style="margin:0 0 4px 0; font-size:0.86rem; color:var(--ink)"><strong>Odds &rarr; Probabilidad:</strong> &nbsp; P = Odds / (1 + Odds)</p>
+            <div class="explain-example" style="padding:7px 12px; font-size:0.76rem">
+              0.22 / 1.22 = <strong style="color:var(--danger)">18%</strong> &nbsp;|&nbsp;
+              1.00 / 2.00 = <strong>50%</strong> &nbsp;|&nbsp;
+              4.48 / 5.48 = <strong style="color:var(--success)">82%</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- VERIFICACION -->
+        <div style="display:flex; gap:10px; align-items:flex-start">
+          <div style="flex-shrink:0; width:22px; height:22px; background:var(--soft); color:white; font-family:'IBM Plex Mono',monospace; font-size:0.68rem; display:flex; align-items:center; justify-content:center; margin-top:2px">&radic;</div>
+          <div style="flex:1">
+            <p style="margin:0 0 4px 0; font-size:0.86rem; color:var(--ink)"><strong>Verificacion en Python</strong></p>
+            <div class="code-block" style="margin:0; font-size:0.72rem; padding:10px 14px">
+<span class="kw">import</span> math<br>
+<span class="kw">for</span> lo <span class="kw">in</span> [<span class="nb">-1.5</span>, <span class="nb">0.0</span>, <span class="nb">1.5</span>]:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;odds = math.exp(lo)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;p    = odds / (<span class="nb">1</span> + odds)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">print</span>(<span class="st">f"lo={lo:+.1f}  Odds={odds:.2f}  P={p:.0%}"</span>)<br>
+<span class="cm-c"># lo=-1.5  Odds=0.22  P=18%</span><br>
+<span class="cm-c"># lo=+0.0  Odds=1.00  P=50%</span><br>
+<span class="cm-c"># lo=+1.5  Odds=4.48  P=82%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3>Escala completa del Log-Odds</h3>
+      <table style="margin-top:10px">
+        <thead><tr><th>Log-Odds</th><th>Odds</th><th>Probabilidad</th><th>Compra de tablet</th></tr></thead>
+        <tbody>
+          <tr><td style="color:var(--danger)">-3.0</td><td>0.05</td><td style="color:var(--danger)">5%</td><td>Casi imposible que compre</td></tr>
+          <tr><td style="color:var(--danger)">-1.0</td><td>0.37</td><td style="color:var(--danger)">27%</td><td>Poco probable que compre</td></tr>
+          <tr><td>0.0</td><td>1.00</td><td>50%</td><td>Igual probable compra o no</td></tr>
+          <tr><td style="color:var(--success)">+1.0</td><td>2.72</td><td style="color:var(--success)">73%</td><td>Bastante probable la compra</td></tr>
+          <tr><td style="color:var(--success)">+3.0</td><td>20.1</td><td style="color:var(--success)">95%</td><td>Casi seguro que compra</td></tr>
+        </tbody>
+      </table>
+      <h3 style="margin-top:18px">Por que no hablar directo de probabilidades?</h3>
+      <p style="font-size:0.86rem">El modelo necesita una escala sin limites para hacer la ecuacion lineal:</p>
+      <div class="explain-formula" style="margin-top:8px; font-size:0.76rem; line-height:1.9">
+        Probabilidad: &nbsp;0 ————————— 0.5 ————————— 1 &nbsp;&nbsp;&nbsp;(limitado)<br>
+        Odds: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0 ————————— 1.0 ————————— &infin; &nbsp;&nbsp;(asimetrico)<br>
+        Log-Odds: &nbsp;&nbsp;&nbsp;&nbsp;-&infin; ————————— 0.0 ————————— +&infin; (ideal)
+      </div>
+      <h3 style="margin-top:16px">Ejemplo: coeficiente de <code>Age</code> = 0.237</h3>
+      <div class="explain-example" style="margin-top:8px">
+        Por cada ano adicional de edad, el log-odds sube 0.237.<br>
+        Odds Ratio = e^0.237 = <strong>1.267</strong><br>
+        <span style="color:var(--soft); font-size:0.82rem">Las personas mayores tienen 26.7% mas odds de comprar la tablet por cada ano extra de edad.</span>
+      </div>
+      <div class="callout" style="margin-top:10px">
+        <p><strong>Truco practico:</strong> los coeficientes siempre se convierten a Odds Ratio (e^coef) o a efectos marginales (AME) para comunicarlos a directivos o equipos de marketing.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 6: SUPUESTOS -->
+<section class="slide" id="slide-6">
+  <div class="slide-label">05 — Supuestos</div>
+  <h2>Supuestos del <em>Modelo</em></h2>
+  <p class="lead">A diferencia de la regresion lineal, el logit tiene supuestos menos restrictivos — pero igualmente importantes.</p>
+  <hr class="rule">
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-num">01</div>
+      <h3>Variable dependiente binaria</h3>
+      <p>Y debe tomar valores 0 o 1. En nuestro caso: Purchased = 1 (compro la tablet), 0 (no compro).</p>
+    </div>
+    <div class="card">
+      <div class="card-num">02</div>
+      <h3>Independencia de observaciones</h3>
+      <p>Cada persona es una observacion independiente. Las 400 observaciones del dataset no deben estar correlacionadas entre si.</p>
+    </div>
+    <div class="card">
+      <div class="card-num">03</div>
+      <h3>Linealidad en log-odds</h3>
+      <p>La relacion entre cada variable continua (Age, EstimatedSalary) y el log-odds debe ser aproximadamente lineal.</p>
+    </div>
+    <div class="card">
+      <div class="card-num">04</div>
+      <h3>Ausencia de multicolinealidad</h3>
+      <p>Genero, Edad y Salario no deben estar altamente correlacionados. Verificar con VIF o matriz de correlacion.</p>
+    </div>
+    <div class="card">
+      <div class="card-num">05</div>
+      <h3>Muestra suficiente</h3>
+      <p>Regla practica: al menos 10 eventos por variable. Con 3 variables y 400 obs., el modelo esta bien dimensionado.</p>
+    </div>
+    <div class="card">
+      <div class="card-num">06</div>
+      <h3>Sin separacion perfecta</h3>
+      <p>Si una variable predice perfectamente la compra, los coeficientes divergen a infinito. Detectar con grafico de densidad.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 7: CODIGO -->
+<section class="slide" id="slide-7">
+  <div class="slide-label">06 — Implementacion</div>
+  <h2>Logit en <em>Python (statsmodels)</em></h2>
+  <p>Pipeline completo: ajuste del modelo, calculo de Odds Ratios con intervalos de confianza y prueba de Wald.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>Ajuste del modelo</h3>
+      <div class="code-block">
+<span class="kw">import</span> pandas <span class="kw">as</span> pd<br>
+<span class="kw">import</span> numpy <span class="kw">as</span> np<br>
+<span class="kw">import</span> statsmodels.api <span class="kw">as</span> sm<br><br>
+<span class="cm-c"># Cargar datos (400 obs.)</span><br>
+df = pd.read_csv(<span class="st">'tablet_purchases.csv'</span>)<br><br>
+<span class="cm-c"># Variables: Gender (1=H, 0=M), Age, EstimatedSalary</span><br>
+X = df[[<span class="st">'Gender'</span>, <span class="st">'Age'</span>, <span class="st">'EstimatedSalary'</span>]]<br>
+y = df[<span class="st">'Purchased'</span>]<br><br>
+<span class="cm-c"># Agregar intercepto (constante)</span><br>
+X = sm.add_constant(X)<br><br>
+<span class="cm-c"># Ajustar modelo logit por MLE</span><br>
+logit_model = sm.Logit(y, X).fit()<br>
+<span class="kw">print</span>(logit_model.summary())
+      </div>
+
+      <h3 style="margin-top:14px">Odds Ratios con intervalos de confianza</h3>
+      <div class="code-block">
+<span class="cm-c"># Odds Ratios = e^coeficiente</span><br>
+OR = np.exp(logit_model.params)<br>
+CI = np.exp(logit_model.conf_int())<br><br>
+resultado = pd.DataFrame({<br>
+&nbsp;&nbsp;<span class="st">'OR'</span>: OR,<br>
+&nbsp;&nbsp;<span class="st">'IC_lower'</span>: CI[<span class="nb">0</span>],<br>
+&nbsp;&nbsp;<span class="st">'IC_upper'</span>: CI[<span class="nb">1</span>],<br>
+&nbsp;&nbsp;<span class="st">'p-valor'</span>: logit_model.pvalues<br>
+})<br>
+<span class="kw">print</span>(resultado)
+      </div>
+    </div>
+    <div>
+      <h3>Prueba de Wald — inferencia global</h3>
+      <p style="font-size:0.84rem">El modelo logit no calcula directamente el estadistico F. La prueba de Wald evalua si los coeficientes de Age y EstimatedSalary son conjuntamente distintos de cero:</p>
+      <div class="code-block">
+<span class="cm-c"># Prueba de Wald conjunta</span><br>
+<span class="kw">print</span>(logit_model.wald_test(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="st">"Age = 0, EstimatedSalary = 0"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;scalar=<span class="kw">True</span>))
+      </div>
+      <div class="explain-example" style="margin-top:4px">
+        Wald test (chi2): statistic=<strong>85.864</strong>, p-value=<strong>2.26e-19</strong>, df=2<br>
+        <span style="color:var(--success); font-size:0.82rem">Conclusion: rechazamos H0. Age y/o EstimatedSalary son conjuntamente significativas.</span>
+      </div>
+
+      <h3 style="margin-top:14px">Resultados globales del modelo</h3>
+      <table class="stat-table">
+        <thead><tr><th>Metrica</th><th>Valor</th><th>Interpretacion</th></tr></thead>
+        <tbody>
+          <tr><td>Observaciones</td><td>400</td><td>—</td></tr>
+          <tr><td>Pseudo R² McFadden</td><td><strong style="color:var(--success)">0.4711</strong></td><td>Ajuste muy bueno (&gt;0.40)</td></tr>
+          <tr><td>Log-Likelihood</td><td>-137.92</td><td>Modelo ajustado</td></tr>
+          <tr><td>LL-Null</td><td>-260.79</td><td>Solo intercepto</td></tr>
+          <tr><td>LLR p-value</td><td style="color:var(--success)">5.49e-53</td><td>Modelo significativo</td></tr>
+          <tr><td>Iteraciones</td><td>8</td><td>Convergio correctamente</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top:14px">Predicciones del modelo</h3>
+      <div class="code-block">
+<span class="cm-c"># Probabilidades predichas para nuevos clientes</span><br>
+nuevo_cliente = pd.DataFrame({<br>
+&nbsp;&nbsp;<span class="st">'const'</span>: [<span class="nb">1</span>],<br>
+&nbsp;&nbsp;<span class="st">'Gender'</span>: [<span class="nb">1</span>],&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cm-c"># Hombre</span><br>
+&nbsp;&nbsp;<span class="st">'Age'</span>: [<span class="nb">45</span>],<br>
+&nbsp;&nbsp;<span class="st">'EstimatedSalary'</span>: [<span class="nb">100000</span>]<br>
+})<br>
+prob = logit_model.predict(nuevo_cliente)<br>
+<span class="kw">print</span>(<span class="st">f"P(Compra) = {prob[0]:.1%}"</span>)<br>
+<span class="cm-c"># P(Compra) = 86.5%</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 8: ODDS RATIOS -->
+<section class="slide" id="slide-8">
+  <div class="slide-label">07 — Odds Ratios</div>
+  <h2>Tabla de <em>Odds Ratios</em> e Interpretacion</h2>
+  <p class="lead">El Odds Ratio (OR = e^coeficiente) cuantifica cuanto cambian las chances de compra al aumentar una variable en una unidad, manteniendo las demas constantes.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>Odds Ratios con IC al 95%</h3>
+      <table class="stat-table">
+        <thead>
+          <tr><th>Variable</th><th>OR</th><th>IC inf.</th><th>IC sup.</th><th>p-valor</th><th>Sig.</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>const</td>
+            <td>2.81e-06</td>
+            <td>1.95e-07</td>
+            <td>4.0e-05</td>
+            <td>5.21e-21</td>
+            <td class="sig-cell">***</td>
+          </tr>
+          <tr>
+            <td>Gender</td>
+            <td>1.3963</td>
+            <td>0.7677</td>
+            <td>2.5398</td>
+            <td>0.274</td>
+            <td class="nsig-cell">n.s.</td>
+          </tr>
+          <tr>
+            <td>Age</td>
+            <td style="color:var(--success); font-weight:600">1.2674</td>
+            <td>1.2035</td>
+            <td>1.3346</td>
+            <td style="color:var(--success)">2.61e-19</td>
+            <td class="sig-cell">***</td>
+          </tr>
+          <tr>
+            <td>EstimatedSalary</td>
+            <td style="color:var(--success); font-weight:600">1.000036</td>
+            <td>1.000026</td>
+            <td>1.000047</td>
+            <td style="color:var(--success)">2.77e-11</td>
+            <td class="sig-cell">***</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top:14px">Visualizacion OR (normalizado)</h3>
+      <p style="font-size:0.75rem; color:var(--soft); margin-bottom:8px">* Salary mostrado por cada $10,000 adicionales de salario (OR=1.440)</p>
+      <div id="coefChart"></div>
+
+      <div class="callout" style="margin-top:12px">
+        <p><strong>Regla de lectura:</strong> OR &gt; 1 = aumenta odds de compra. OR &lt; 1 = reduce odds. IC que incluye el 1 = NO significativo.</p>
+      </div>
+    </div>
+    <div>
+      <h3>Interpretacion de cada variable</h3>
+
+      <div class="interp-box warn" style="margin-top:8px">
+        <strong>Gender — OR = 1.396 (NO significativo, p = 0.274)</strong>
+        Los hombres tienen 39.6% mas odds de comprar la tablet que las mujeres, controlando por edad y salario. Sin embargo, el intervalo de confianza [0.768, 2.540] incluye el valor 1, lo que indica que este efecto <em>no es estadisticamente distinguible de cero</em>. No se puede descartar la hipotesis de que el genero no tiene efecto en la compra.
+
+        <div style="margin-top:12px; border-top: 1px solid #f0c0bc; padding-top:11px">
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:0.66rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--danger)">Por que el valor critico es 1 y no 0?</span>
+          <p style="margin:7px 0 6px 0; font-size:0.84rem; color:var(--ink)">
+            El coeficiente reportado es el <strong>Odds Ratio</strong> (<code>OR = e<sup>&beta;</sup></code>), no el coeficiente &beta; directamente. El valor neutro — "sin efecto" — en escala de OR es 1, porque:
+          </p>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:0.77rem; background:#fff5f5; border:1px solid #f0c0bc; padding:9px 13px; margin:6px 0; line-height:1.9; color:var(--ink)">
+            &beta; = 0 &nbsp;&rarr;&nbsp; OR = e<sup>0</sup> = <strong>1</strong> &nbsp;&nbsp;(sin efecto)<br>
+            &beta; &gt; 0 &nbsp;&rarr;&nbsp; OR &gt; 1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(aumenta el odds)<br>
+            &beta; &lt; 0 &nbsp;&rarr;&nbsp; OR &lt; 1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(reduce el odds)
+          </div>
+          <p style="margin:6px 0 0 0; font-size:0.82rem; color:var(--mid)">
+            Para Gender: el IC [0.768, 2.540] <em>contiene el 1</em>, por lo que OR = 1 (ningun efecto) es un valor plausible. Es la misma logica que en regresion lineal, donde el IC de &beta; no debe contener el <strong>0</strong> — solo que aqui la escala es multiplicativa, no aditiva.
+          </p>
+        </div>
+      </div>
+
+      <div class="interp-box ok" style="margin-top:10px">
+        <strong>Age — OR = 1.267 (*** altamente significativo, p = 2.61e-19)</strong>
+        <p style="margin:6px 0 0 0; font-size:0.88rem; color:var(--mid)">Por cada ano adicional de edad, las odds de comprar la tablet aumentan un <strong>26.7%</strong>, manteniendo constantes genero y salario. El IC [1.204, 1.335] esta completamente por encima de 1, confirmando el efecto positivo y significativo de la edad. Es la variable con mayor potencia estadistica del modelo (z = 8.984).</p>
+
+        <div style="margin-top:12px; border-top: 1px solid #b8ddc8; padding-top:11px">
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:0.66rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--success)">De donde sale el valor 1.267?</span>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:#f0faf4; border:1px solid #b8ddc8; padding:12px 16px; margin:8px 0; line-height:1.6; color:var(--ink)">
+            <div style="margin-bottom:8px">Por cada ano adicional de edad, el log-odds sube <strong>0.237</strong></div>
+            <div style="margin-bottom:8px">Odds Ratio = e<sup>0.237</sup> = <strong>1.267</strong></div>
+            <div style="color:var(--soft)">Por cada ano adicional de edad, las odds de compra aumentan en un 26.7%.</div>
+          </div>
+          <p style="margin:6px 0 0 0; font-size:0.82rem; color:var(--mid)">
+            El coeficiente &beta; = 0.237 opera en escala de <em>log-odds</em>. Para pasarlo a escala interpretable se aplica la exponencial: OR = e<sup>&beta;</sup>. El porcentaje de cambio en odds es entonces <strong>(OR &minus; 1) &times; 100 = (1.267 &minus; 1) &times; 100 = 26.7%</strong>.
+          </p>
+        </div>
+      </div>
+
+      <div class="interp-box ok" style="margin-top:10px">
+        <strong>EstimatedSalary — OR = 1.000036 por $ (*** altamente significativo, p = 2.77e-11)</strong>
+        El efecto unitario es muy pequeno porque el salario se mide en dolares individuales. Para interpretarlo de forma practica: por cada <strong>$10,000 adicionales</strong> de salario, las odds de compra aumentan un <strong>44%</strong>. El IC [1.000026, 1.000047] confirma significancia positiva.
+
+        <div style="margin-top:12px; border-top: 1px solid #b8ddc8; padding-top:11px">
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:0.66rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--success)">De donde viene el 44%?</span>
+          <p style="margin:7px 0 6px 0; font-size:0.84rem; color:var(--ink)">
+            El OR por $10,000 se calcula escalando el coeficiente &beta; = 3.644&times;10<sup>&minus;5</sup>:
+          </p>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:#f0faf4; border:1px solid #b8ddc8; padding:10px 14px; margin:6px 0; line-height:2.1; color:var(--ink); text-align:center">
+            OR = e<sup>(3.644&times;10<sup>&minus;5</sup> &times; 10,000)</sup> = e<sup>0.3644</sup> = <strong>1.4396</strong><br>
+            Aumento en odds = OR &minus; 1 = 1.4396 &minus; 1 = <strong>0.4396 &asymp; 44%</strong>
+          </div>
+          <p style="margin:6px 0 0 0; font-size:0.82rem; color:var(--mid)">
+            El 44% <strong>no</strong> es el exponente 0.3644 directamente — eso daria un error del 7.7%. El porcentaje correcto siempre es <strong>(e<sup>&beta;&times;escala</sup> &minus; 1) &times; 100</strong>.
+          </p>
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 9: EFECTOS MARGINALES -->
+<section class="slide" id="slide-9">
+  <div class="slide-label">08 — Efectos Marginales</div>
+  <h2>Efectos Marginales <em>Promedio (AME)</em></h2>
+  <p class="lead">La forma mas intuitiva de interpretar el logit. Expresan el efecto de cada variable directamente en <strong>puntos porcentuales de probabilidad de compra</strong>.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>Tabla de efectos marginales (dy/dx)</h3>
+      <table class="stat-table">
+        <thead>
+          <tr><th>Variable</th><th>dy/dx</th><th>Std Err</th><th>z</th><th>P&gt;|z|</th><th>IC 95%</th><th>Sig.</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Gender</td>
+            <td>0.0368</td>
+            <td>0.034</td>
+            <td>1.099</td>
+            <td>0.272</td>
+            <td>[-0.029, 0.103]</td>
+            <td class="nsig-cell">n.s.</td>
+          </tr>
+          <tr>
+            <td>Age</td>
+            <td style="color:var(--success); font-weight:600">0.0262</td>
+            <td>0.001</td>
+            <td>18.674</td>
+            <td style="color:var(--success)">0.000</td>
+            <td>[0.023, 0.029]</td>
+            <td class="sig-cell">***</td>
+          </tr>
+          <tr>
+            <td>EstimatedSalary</td>
+            <td style="color:var(--success); font-weight:600">4.022e-06</td>
+            <td>4.55e-07</td>
+            <td>8.840</td>
+            <td style="color:var(--success)">0.000</td>
+            <td>[3.13e-06, 4.91e-06]</td>
+            <td class="sig-cell">***</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top:14px">Interpretacion de cada AME</h3>
+
+      <div class="interp-box warn" style="margin-top:8px">
+        <strong>Gender — AME = +3.68 pp (NO significativo, p = 0.272)</strong>
+        En promedio, ser hombre aumenta 3.68 puntos porcentuales la probabilidad de comprar la tablet. Sin embargo, el IC [-0.029, 0.103] cruza el cero — no podemos descartar que el efecto real sea nulo o incluso negativo.
+      </div>
+
+      <div class="interp-box ok" style="margin-top:10px">
+        <strong>Age — AME = +2.62 pp por ano (*** altamente significativo)</strong>
+        Cada ano adicional de edad aumenta en promedio <strong>2.62 puntos porcentuales</strong> la probabilidad de compra. Con z = 18.674 y IC = [0.023, 0.029], este es el efecto mas precisamente estimado del modelo. Ejemplo: un cliente de 50 anos tiene, en promedio, 26.2 pp mas de probabilidad de compra que uno de 40.
+      </div>
+
+      <div class="interp-box ok" style="margin-top:10px">
+        <strong>EstimatedSalary — AME = 4.022e-06 pp por $ (*** altamente significativo)</strong>
+        Por cada dolar adicional de salario, la probabilidad de compra aumenta 0.0004%. Para interpretarlo de forma practica: por cada <strong>$10,000 adicionales</strong>, la probabilidad de compra sube en promedio <strong>4.02 puntos porcentuales</strong>.
+      </div>
+    </div>
+    <div>
+      <h3>Visualizacion AME — Efecto en pp</h3>
+      <p style="font-size:0.82rem; margin-bottom:4px; color:var(--soft)">Efecto en puntos porcentuales de probabilidad de compra</p>
+      <p style="font-size:0.75rem; color:var(--soft); margin-bottom:12px">* Salary mostrado por $10,000 adicionales (+4.02 pp). Barras atenuadas = no significativo.</p>
+      <div id="ameChart"></div>
+
+      <h3 style="margin-top:18px">Codigo en Python</h3>
+      <div class="code-block">
+<span class="cm-c"># statsmodels calcula AME nativamente</span><br>
+marginal_effects = logit_model.get_margeff()<br>
+<span class="kw">print</span>(marginal_effects.summary())<br><br>
+<span class="cm-c"># Resultado (dydx = dy/dx = AME):</span><br>
+<span class="cm-c">#  Gender:          dy/dx = 0.0368  (n.s.)</span><br>
+<span class="cm-c">#  Age:             dy/dx = 0.0262  ***</span><br>
+<span class="cm-c">#  EstimatedSalary: dy/dx = 4.022e-06 ***</span><br>
+<span class="cm-c">#  (equivale a +4.02 pp por cada $10,000)</span><br><br>
+<span class="cm-c"># Calculo manual del factor de escala:</span><br>
+<span class="kw">import</span> numpy <span class="kw">as</span> np<br>
+probs = logit_model.predict()<br>
+scale = np.mean(probs * (<span class="nb">1</span> - probs))<br>
+<span class="kw">print</span>(<span class="st">f"Factor de escala: {scale:.4f}"</span>)<br>
+<span class="cm-c"># AME = coeficiente * factor de escala</span><br>
+<span class="kw">for</span> name, coef <span class="kw">in</span> logit_model.params.items():<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">print</span>(<span class="st">f"{name}: AME = {coef*scale:+.4f}"</span>)
+      </div>
+
+      <div class="callout" style="margin-top:10px">
+        <p><strong>AME vs OR:</strong> el AME es mas facil de comunicar a audiencias no tecnicas ("cada ano extra de edad sube 2.6 pp la probabilidad"), mientras que el OR es preferido en publicaciones clinicas o epidemiologicas.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 10: RESUMEN -->
+<section class="slide" id="slide-10">
+  <div class="slide-label">Cierre</div>
+  <h2>Resumen</h2>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>Lo que aprendimos hoy</h3>
+      <ul class="styled">
+        <li>Logit predice probabilidades de compra (0 a 1), no valores continuos</li>
+        <li>La funcion sigmoide transforma log-odds en probabilidades; los valores -1.5, 0 y +1.5 son ejemplos pedagogicos calculados como e^(log-odds) y Odds/(1+Odds)</li>
+        <li>Los coeficientes se interpretan como cambios en log-odds por unidad de cada variable</li>
+        <li>Odds Ratio (e^coef): Age OR=1.267 (+26.7% odds/ano), Salary OR=1.44 por $10k — ambos altamente significativos (p&lt;0.001)</li>
+        <li>Gender OR=1.396 pero NO significativo (p=0.274); su IC [0.768, 2.540] incluye el 1</li>
+        <li>Prueba de Wald: chi2=85.86, p=2.26e-19 — Age y Salary son conjuntamente significativas</li>
+        <li>Efectos marginales AME: Age +2.62 pp/ano, Salary +4.02 pp/$10k, Gender +3.68 pp (n.s.)</li>
+        <li>Pseudo R² McFadden = 0.4711 — ajuste excelente del modelo (umbral de referencia: &gt;0.40)</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Resultados clave del modelo</h3>
+      <table style="margin-top:8px; font-size:0.83rem">
+        <thead><tr><th>Variable</th><th>OR</th><th>AME</th><th>p-valor</th></tr></thead>
+        <tbody>
+          <tr><td>const</td><td>2.81e-06</td><td>—</td><td style="color:var(--success)">0.000 ***</td></tr>
+          <tr><td>Gender</td><td>1.396</td><td>+3.68 pp</td><td style="color:var(--soft)">0.274 n.s.</td></tr>
+          <tr><td>Age</td><td style="color:var(--success); font-weight:600">1.267</td><td style="color:var(--success); font-weight:600">+2.62 pp/ano</td><td style="color:var(--success)">0.000 ***</td></tr>
+          <tr><td>Salary ($10k)</td><td style="color:var(--success); font-weight:600">1.440</td><td style="color:var(--success); font-weight:600">+4.02 pp</td><td style="color:var(--success)">0.000 ***</td></tr>
+        </tbody>
+      </table>
+      <h3 style="margin-top:16px">Proximos pasos</h3>
+      <div class="card" style="margin-bottom:9px">
+        <h3>Evaluacion del modelo</h3>
+        <p>Las metricas de clasificacion (AUC-ROC, Accuracy, Precision, Recall, matriz de confusion) seran tratadas en un archivo HTML dedicado a la evaluacion del modelo.</p>
+      </div>
+      <div class="card" style="margin-bottom:9px">
+        <h3>Extender</h3>
+        <p>Explorar variables categoricas adicionales y tecnicas de interaccion (Gender x Age) para capturar efectos no lineales en la decision de compra.</p>
+      </div>
+      <div class="card">
+        <h3>Profundizar</h3>
+        <p>Estudiar calibracion de probabilidades (Platt Scaling) y optimizacion del umbral de clasificacion segun el costo de falsos positivos vs. falsos negativos.</p>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:18px; font-family:'IBM Plex Mono',monospace; font-size:0.7rem; color:#bbb; border-top:var(--rule); padding-top:12px">
+    Regresion Logistica — Modelo de Compra de Tablets | Gender, Age, EstimatedSalary → Purchased | 400 obs. | Pseudo R² = 0.4711 | OR Age = 1.267 | AME Age = +2.62 pp
+  </div>
+</section>
+
+<!-- BOTTOM NAV -->
+<div class="lg-bottom-nav">
+  <button class="btn" id="btnPrev" disabled>Anterior</button>
+  <button class="btn primary" id="btnNext">Siguiente</button>
+</div>
+
+<script>
+(function() {
+  var TOTAL = 10;
+  var cur = 1;
+  var titles = ['Inicio','Concepto','Sigmoide','Odds','Log-Odds','Supuestos','Codigo','Odds Ratios','Margeff','Resumen'];
+
+  var pillBox = document.getElementById('navPills');
+  for (var i = 1; i <= TOTAL; i++) {
+    (function(idx) {
+      var b = document.createElement('button');
+      b.className = 'nav-pill' + (idx === 1 ? ' active' : '');
+      b.textContent = idx;
+      b.title = titles[idx - 1];
+      b.addEventListener('click', function() { lgGoTo(idx); });
+      pillBox.appendChild(b);
+    })(i);
+  }
+
+  document.getElementById('btnPrev').addEventListener('click', function() { lgGoTo(cur - 1); });
+  document.getElementById('btnNext').addEventListener('click', function() { lgGoTo(cur + 1); });
+
+  function lgGoTo(n) {
+    var prevSlide = document.getElementById('slide-' + cur);
+    var prevPill  = document.querySelectorAll('.nav-pill')[cur - 1];
+    if (prevSlide) prevSlide.classList.remove('active');
+    if (prevPill)  prevPill.classList.remove('active');
+
+    cur = Math.max(1, Math.min(TOTAL, n));
+
+    var nextSlide = document.getElementById('slide-' + cur);
+    var nextPill  = document.querySelectorAll('.nav-pill')[cur - 1];
+    if (nextSlide) nextSlide.classList.add('active');
+    if (nextPill)  nextPill.classList.add('active');
+
+    document.getElementById('navCounter').textContent = cur + ' / ' + TOTAL;
+    document.getElementById('lg-progress').style.width = ((cur / TOTAL) * 100) + '%';
+    document.getElementById('btnPrev').disabled = (cur === 1);
+    document.getElementById('btnNext').disabled = (cur === TOTAL);
+
+    var nav = document.querySelector('.lg-nav');
+    if (nav) nav.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    if (cur === 3) initSigmoid();
+    if (cur === 8) initCoefChart();
+    if (cur === 9) initAME();
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') lgGoTo(cur + 1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   lgGoTo(cur - 1);
+  });
+
+  // ── SIGMOIDE ──────────────────────────────────────────────────
+  var sigmoidInited = false;
+  function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+
+  function initSigmoid() {
+    if (sigmoidInited) return;
+    sigmoidInited = true;
+    drawSigmoid();
+    document.getElementById('slB0').addEventListener('input', drawSigmoid);
+    document.getElementById('slB1').addEventListener('input', drawSigmoid);
+  }
+
+  function drawSigmoid() {
+    var b0 = parseFloat(document.getElementById('slB0').value);
+    var b1 = parseFloat(document.getElementById('slB1').value);
+    document.getElementById('valB0').textContent = b0.toFixed(1);
+    document.getElementById('valB1').textContent = b1.toFixed(1);
+    document.getElementById('sigmoidFormula').textContent =
+      'P(Compra=1) = 1 / (1 + e^-(' + b0.toFixed(1) + ' + ' + b1.toFixed(1) + '*x))';
+
+    var canvas = document.getElementById('sigmoidCanvas');
+    var ctx = canvas.getContext('2d');
+    var W = canvas.width, H = canvas.height;
+    var pad = 38;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#fafafa';
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = '#e8e8e8'; ctx.lineWidth = 1;
+    for (var yv = 0; yv <= 1; yv += 0.25) {
+      var py = pad + (1 - yv) * (H - 2 * pad);
+      ctx.beginPath(); ctx.moveTo(pad, py); ctx.lineTo(W - pad, py); ctx.stroke();
+      ctx.fillStyle = '#aaa'; ctx.font = '9px IBM Plex Mono';
+      ctx.fillText(yv.toFixed(2), 4, py + 4);
+    }
+    for (var xv = -5; xv <= 5; xv += 2.5) {
+      var px = pad + ((xv + 5) / 10) * (W - 2 * pad);
+      ctx.beginPath(); ctx.moveTo(px, pad); ctx.lineTo(px, H - pad); ctx.stroke();
+      ctx.fillStyle = '#aaa'; ctx.font = '9px IBM Plex Mono';
+      ctx.fillText(xv.toFixed(1), px - 10, H - 7);
+    }
+
+    ctx.strokeStyle = '#ddd'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+    var py05 = pad + 0.5 * (H - 2 * pad);
+    ctx.beginPath(); ctx.moveTo(pad, py05); ctx.lineTo(W - pad, py05); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#bbb'; ctx.font = '9px IBM Plex Mono';
+    ctx.fillText('0.50', W - pad + 4, py05 + 4);
+
+    ctx.strokeStyle = '#2560a0'; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (var px2 = pad; px2 <= W - pad; px2++) {
+      var xVal = ((px2 - pad) / (W - 2 * pad)) * 10 - 5;
+      var z = b0 + b1 * xVal;
+      var p = sigmoid(z);
+      var pyc = pad + (1 - p) * (H - 2 * pad);
+      if (px2 === pad) { ctx.moveTo(px2, pyc); } else { ctx.lineTo(px2, pyc); }
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = '#555'; ctx.font = '10px IBM Plex Sans';
+    ctx.fillText('P(Compra=1)', 4, pad - 7);
+    ctx.fillText('x', W - pad + 2, H - pad + 14);
+  }
+
+  // ── CALCULADORA (slide 4) ─────────────────────────────────────
+  // Modelo: z = -12.7836 + 0.3338*Gender + 0.2370*Age + 3.644e-05*Salary
+  document.getElementById('btnCalcOdds').addEventListener('click', function() {
+    var gender = parseFloat(document.getElementById('oddsGender').value);
+    var age    = parseFloat(document.getElementById('oddsAge').value);
+    var salary = parseFloat(document.getElementById('oddsSalary').value);
+    gender = Math.round(Math.max(0, Math.min(1, gender)));
+
+    var z    = -12.7836 + 0.3338 * gender + 0.2370 * age + 3.644e-05 * salary;
+    var odds = Math.exp(z);
+    var p    = sigmoid(z);
+    var cls  = p >= 0.5 ? 'COMPRA la tablet (1)' : 'NO compra la tablet (0)';
+
+    document.getElementById('orZ').textContent    = z.toFixed(4);
+    document.getElementById('orOdds').textContent = odds.toFixed(4);
+    document.getElementById('orP').textContent    = (p * 100).toFixed(2) + '%';
+    document.getElementById('orClass').textContent = cls;
+    document.getElementById('orClass').style.color = p >= 0.5 ? '#1e6b45' : '#c0392b';
+
+    var bar = document.getElementById('oddsBar');
+    bar.style.width = Math.min(p * 100, 100).toFixed(1) + '%';
+    bar.textContent = (p * 100).toFixed(1) + '%';
+    bar.style.background = p >= 0.5 ? '#2560a0' : '#c0392b';
+
+    document.getElementById('oddsResult').style.display = 'block';
+  });
+
+  // ── OR CHART (slide 8) ────────────────────────────────────────
+  // OR values: Gender=1.3963, Age=1.2674, Salary per $10k=1.4396
+  // Displayed as (OR - 1) so the "increase over baseline" is shown
+  var orData = [
+    { name: 'Gender (OR=1.396)',      or: 1.3963, sig: false },
+    { name: 'Age (OR=1.267)',         or: 1.2674, sig: true  },
+    { name: 'Salary x$10k (OR=1.44)',or: 1.4396, sig: true  }
+  ];
+  var coefInited = false;
+
+  function initCoefChart() {
+    if (coefInited) return;
+    coefInited = true;
+
+    var chart = document.getElementById('coefChart');
+    chart.innerHTML = '';
+    // Show excess above 1 (the effect)
+    var maxExcess = 0;
+    for (var i = 0; i < orData.length; i++) {
+      var ex = Math.abs(orData[i].or - 1);
+      if (ex > maxExcess) maxExcess = ex;
+    }
+
+    for (var j = 0; j < orData.length; j++) {
+      (function(d) {
+        var excess = d.or - 1;
+        var isPos = excess >= 0;
+        var pct = (Math.abs(excess) / maxExcess * 100).toFixed(1);
+        var row = document.createElement('div');
+        row.className = 'coef-row';
+        row.innerHTML =
+          '<div class="coef-name" style="width:190px">' + d.name +
+            (d.sig ? '' : ' <span style="color:#aaa;font-size:0.62rem">(n.s.)</span>') +
+          '</div>' +
+          '<div class="coef-bar-bg">' +
+            '<div class="' + (isPos ? 'coef-bar-pos' : 'coef-bar-neg') +
+            '" style="width:0%;opacity:' + (d.sig ? '1' : '0.4') + '" data-w="' + pct + '%"></div>' +
+          '</div>' +
+          '<div class="coef-val" style="color:' + (isPos ? '#2560a0' : '#c0392b') + ';width:70px">' +
+            (excess > 0 ? '+' : '') + (excess * 100).toFixed(1) + '%' +
+          '</div>';
+        chart.appendChild(row);
+      })(orData[j]);
+    }
+
+    setTimeout(function() {
+      var bars = chart.querySelectorAll('.coef-bar-pos, .coef-bar-neg');
+      for (var k = 0; k < bars.length; k++) {
+        bars[k].style.width = bars[k].getAttribute('data-w');
+      }
+    }, 120);
+  }
+
+  // ── AME CHART (slide 9) ───────────────────────────────────────
+  // Real AME values from statsmodels output:
+  // Gender:          dy/dx = 0.0368  (n.s., p=0.272)
+  // Age:             dy/dx = 0.0262  (***,  p=0.000)
+  // EstimatedSalary: dy/dx = 4.022e-06 per $ → per $10k = 0.04022 (***)
+  var ameData = [
+    { name: 'Gender',          ame: 0.0368,  label: '+3.68 pp', sig: false },
+    { name: 'Age',             ame: 0.0262,  label: '+2.62 pp', sig: true  },
+    { name: 'Salary (x$10k)', ame: 0.04022, label: '+4.02 pp', sig: true  }
+  ];
+  var ameInited = false;
+
+  function initAME() {
+    if (ameInited) return;
+    ameInited = true;
+    var container = document.getElementById('ameChart');
+    if (!container) return;
+    container.innerHTML = '';
+    var maxAbs = 0;
+    for (var i = 0; i < ameData.length; i++) {
+      var a = Math.abs(ameData[i].ame);
+      if (a > maxAbs) maxAbs = a;
+    }
+    for (var j = 0; j < ameData.length; j++) {
+      (function(d) {
+        var isPos = d.ame >= 0;
+        var pct = (Math.abs(d.ame) / maxAbs * 100).toFixed(1);
+        var color = isPos ? 'var(--accent2)' : 'var(--danger)';
+        var row = document.createElement('div');
+        row.className = 'coef-row';
+        row.innerHTML =
+          '<div class="coef-name">' + d.name +
+            (d.sig ? '' : ' <span style="color:#aaa;font-size:0.62rem">(n.s.)</span>') +
+          '</div>' +
+          '<div class="coef-bar-bg">' +
+            '<div class="' + (isPos ? 'coef-bar-pos' : 'coef-bar-neg') +
+            '" style="width:0%;opacity:' + (d.sig ? '1' : '0.4') + '" data-w="' + pct + '%"></div>' +
+          '</div>' +
+          '<div class="coef-val" style="color:' + color + '; font-size:0.76rem">' + d.label + '</div>';
+        container.appendChild(row);
+      })(ameData[j]);
+    }
+    setTimeout(function() {
+      var bars = container.querySelectorAll('.coef-bar-pos, .coef-bar-neg');
+      for (var k = 0; k < bars.length; k++) {
+        bars[k].style.width = bars[k].getAttribute('data-w');
+      }
+    }, 120);
+  }
+
+})();
+</script>
+</body>
+</html>

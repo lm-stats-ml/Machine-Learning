@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modelos Boosting — NYC Taxi</title>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:ital,wght@0,400;0,600;1,400&family=Spectral:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;600;700&family=Inconsolata:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff; --ink: #1a1a1a; --mid: #4a4a4a; --soft: #8a8a8a;
+    --rule: 1px solid #e0e0e0;
+    --accent: #2d6a4f; --accent2: #40916c; --accent3: #d8f3dc; --accent4: #f0faf3;
+    --violet: #5c4197; --violet2: #7b5ea7; --violet3: #ede7f6;
+    --brown: #7b4f2e; --brown2: #a0522d; --brown3: #fdf0e8;
+    --blue: #1a3a6b; --blue2: #2e5da0; --blue3: #e8eef8;
+    --warn: #e07b00; --danger: #c0392b; --success: #2d6a4f;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Jost', sans-serif; background: #f4f4f2; color: var(--ink); min-height: 100vh; }
+
+  nav {
+    position: sticky; top: 0; z-index: 100; background: var(--ink);
+    display: flex; align-items: center; padding: 0 24px; height: 44px; overflow-x: auto;
+  }
+  nav button {
+    background: none; border: none; color: #aaa; font-family: 'Inconsolata', monospace;
+    font-size: 0.72rem; font-weight: 600; padding: 0 14px; height: 44px; cursor: pointer;
+    white-space: nowrap; letter-spacing: 0.04em; border-bottom: 2px solid transparent;
+    transition: color .2s, border-color .2s;
+  }
+  nav button:hover { color: #fff; }
+  nav button.active { color: #fff; border-bottom-color: var(--accent2); }
+  .nav-title { font-family: 'Zilla Slab', serif; font-size: 0.84rem; color: #fff; margin-right: 20px; white-space: nowrap; flex-shrink: 0; }
+
+  .slide { display: none; max-width: 980px; margin: 32px auto; background: var(--bg); padding: 42px 48px; border: var(--rule); }
+  .slide.active { display: block; }
+
+  .slide-label { font-family: 'Inconsolata', monospace; font-size: 0.7rem; letter-spacing: 0.1em; color: var(--soft); text-transform: uppercase; margin-bottom: 10px; }
+  h2 { font-family: 'Zilla Slab', serif; font-size: 2rem; font-weight: 600; line-height: 1.2; margin-bottom: 10px; }
+  h2 em { font-style: italic; color: var(--accent); }
+  h3 { font-family: 'Zilla Slab', serif; font-size: 1.1rem; font-weight: 600; margin: 16px 0 8px; }
+  p.lead { font-family: 'Spectral', serif; font-size: 1.05rem; color: var(--mid); line-height: 1.6; margin-bottom: 14px; }
+  p { font-size: 0.88rem; color: var(--mid); line-height: 1.65; margin-bottom: 8px; }
+  hr.rule { border: none; border-top: var(--rule); margin: 18px 0; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  .explain-example {
+    background: #f8f8f6; border-left: 3px solid var(--accent2);
+    padding: 12px 16px; font-family: 'Inconsolata', monospace;
+    font-size: 0.8rem; line-height: 1.9; color: var(--mid); margin: 8px 0;
+  }
+  .callout { background: var(--accent4); border: 1px solid #b7e4c7; padding: 12px 16px; margin: 10px 0; }
+  .callout p { color: var(--ink); font-size: 0.84rem; }
+  .callout.violet { background: var(--violet3); border-color: #c5b3e6; }
+  .callout.brown  { background: var(--brown3);  border-color: #d4a87a; }
+  .callout.blue   { background: var(--blue3);   border-color: #a8bfe0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin: 8px 0; }
+  th { background: var(--ink); color: #fff; font-family: 'Inconsolata', monospace; font-size: 0.72rem; letter-spacing: 0.05em; padding: 7px 10px; text-align: left; }
+  td { padding: 7px 10px; border-bottom: var(--rule); color: var(--mid); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+
+  code { font-family: 'Inconsolata', monospace; font-size: 0.82em; background: #f0f0ee; padding: 1px 5px; color: var(--brown); }
+
+  .code-block {
+    background: #1e1e1e; color: #d4d4d4; font-family: 'Inconsolata', monospace;
+    font-size: 0.78rem; line-height: 1.8; padding: 16px 20px; margin: 10px 0; overflow-x: auto;
+  }
+  .kw { color: #569cd6; } .fn { color: #dcdcaa; } .st { color: #ce9178; }
+  .cm { color: #6a9955; } .nm { color: #b5cea8; }
+
+  .cover-tag { font-family: 'Inconsolata', monospace; font-size: 0.72rem; letter-spacing: 0.12em; color: var(--soft); text-transform: uppercase; margin-bottom: 14px; }
+  .cover-h1 { font-family: 'Zilla Slab', serif; font-size: 2.8rem; font-weight: 600; line-height: 1.15; margin-bottom: 18px; }
+  .cover-h1 em { font-style: italic; color: var(--accent); }
+  .cover-sub { font-family: 'Spectral', serif; font-size: 1.1rem; color: var(--mid); line-height: 1.65; max-width: 560px; margin-bottom: 28px; }
+  .cover-meta { display: flex; gap: 28px; border-top: var(--rule); padding-top: 20px; flex-wrap: wrap; }
+  .cover-meta-item { display: flex; flex-direction: column; gap: 2px; }
+  .cover-meta-item strong { font-size: 1.1rem; font-weight: 700; color: var(--ink); }
+  .cover-meta-item { font-size: 0.78rem; color: var(--soft); }
+
+  .seq-box { border: var(--rule); padding: 10px 14px; margin: 6px 0; font-size: 0.82rem; }
+  .seq-box .seq-label { font-family: 'Inconsolata', monospace; font-size: 0.64rem; color: var(--soft); letter-spacing: 0.08em; margin-bottom: 4px; text-transform: uppercase; }
+  .seq-arrow { text-align: center; font-size: 1.1rem; color: var(--soft); margin: 2px 0; }
+
+  .tag-green  { display:inline-block; background:var(--accent3); color:var(--accent); font-family:'Inconsolata',monospace; font-size:0.7rem; padding:2px 7px; margin:2px; }
+  .tag-violet { display:inline-block; background:var(--violet3); color:var(--violet); font-family:'Inconsolata',monospace; font-size:0.7rem; padding:2px 7px; margin:2px; }
+  .tag-brown  { display:inline-block; background:var(--brown3);  color:var(--brown);  font-family:'Inconsolata',monospace; font-size:0.7rem; padding:2px 7px; margin:2px; }
+
+  .btn { display:inline-block; background:var(--accent); color:#fff; border:none; font-family:'Jost',sans-serif; font-size:0.78rem; font-weight:600; padding:7px 18px; cursor:pointer; margin:4px 4px 4px 0; transition:background .2s; }
+  .btn:hover { background: var(--accent2); }
+  .btn.violet { background: var(--violet); }
+  .btn.violet:hover { background: var(--violet2); }
+  .btn.brown { background: var(--brown); }
+  .btn.brown:hover { background: var(--brown2); }
+  .btn.blue { background: var(--blue); }
+
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+
+  .metric-box { border: var(--rule); padding: 12px 16px; text-align: center; }
+  .metric-box .val { font-family: 'Zilla Slab', serif; font-size: 1.8rem; font-weight: 600; color: var(--accent); }
+  .metric-box .lbl { font-family: 'Inconsolata', monospace; font-size: 0.68rem; color: var(--soft); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
+  .metric-box.violet .val { color: var(--violet); }
+  .metric-box.brown .val  { color: var(--brown); }
+
+  canvas { display: block; width: 100%; }
+  .canvas-wrap { border: var(--rule); padding: 8px; background: #fafaf8; }
+
+  .error-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 0.76rem; }
+  .error-lbl { font-family: 'Inconsolata', monospace; width: 130px; color: var(--soft); flex-shrink: 0; }
+  .error-bg { flex: 1; background: #eee; height: 14px; }
+  .error-fill { height: 100%; transition: width .6s; }
+
+  /* Diagram-specific */
+  .diagram-svg { width: 100%; height: auto; display: block; font-family: 'Jost', sans-serif; }
+
+  @media (max-width: 640px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .slide { padding: 24px 20px; }
+    h2 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-title">Boosting — NYC Taxi</div>
+  <button class="active" onclick="goTo(1,this)">01 Portada</button>
+  <button onclick="goTo(2,this)">02 Familia Ensamble</button>
+  <button onclick="goTo(3,this)">03 AdaBoost</button>
+  <button onclick="goTo(4,this)">04 Gradient Boosting</button>
+  <button onclick="goTo(5,this)">05 XGBoost</button>
+  <button onclick="goTo(6,this)">06 Comparacion</button>
+  <button onclick="goTo(7,this)">07 Codigo</button>
+</nav>
+
+<!-- SLIDE 1 -->
+<section class="slide active" id="slide-1">
+  <div class="cover-tag">Machine Learning Supervisado — Metodos de Ensamble</div>
+  <div class="cover-h1">Modelos de<br><em>Boosting</em></div>
+  <p class="cover-sub">AdaBoost, Gradient Boosting y XGBoost. Tres generaciones de un mismo principio: aprender de los errores del modelo anterior para construir un predictor progresivamente mas preciso. Contexto: predecir si un pasajero del taxi de Nueva York paga con tarjeta o en efectivo.</p>
+  <div class="cover-meta">
+    <div class="cover-meta-item"><strong>3</strong>Modelos</div>
+    <div class="cover-meta-item"><strong>Interactivo</strong>Demos en vivo</div>
+    <div class="cover-meta-item"><strong>sklearn</strong>AdaBoost / GBM / XGB</div>
+    <div class="cover-meta-item"><strong>NYC Taxi</strong>Tarjeta vs Efectivo</div>
+  </div>
+  <hr class="rule">
+  <div class="grid-3" style="margin-top:20px">
+    <div style="border-left:3px solid var(--accent);padding-left:14px">
+      <div style="font-family:'Inconsolata',monospace;font-size:0.68rem;color:var(--soft);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">AdaBoost — 1995</div>
+      <p style="font-size:0.83rem">Asigna pesos a las observaciones. Los errores del arbol anterior reciben mas atencion en el siguiente.</p>
+    </div>
+    <div style="border-left:3px solid var(--violet);padding-left:14px">
+      <div style="font-family:'Inconsolata',monospace;font-size:0.68rem;color:var(--soft);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">Gradient Boosting — 2001</div>
+      <p style="font-size:0.83rem">Ajusta los residuos. Cada arbol aprende a predecir el error que el anterior no pudo capturar.</p>
+    </div>
+    <div style="border-left:3px solid var(--brown);padding-left:14px">
+      <div style="font-family:'Inconsolata',monospace;font-size:0.68rem;color:var(--soft);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">XGBoost — 2016</div>
+      <p style="font-size:0.83rem">Gradient Boosting con regularizacion, velocidad y manejo nativo de valores faltantes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 2 -->
+<section class="slide" id="slide-2">
+  <div class="slide-label">01 — Contexto</div>
+  <h2>La familia de los <em>ensambles</em></h2>
+  <p class="lead">Boosting, Bagging y Stacking son las tres ramas del aprendizaje por ensamble. Todos combinan multiples modelos debiles para producir uno fuerte. La diferencia clave esta en <strong>como</strong> se entrenan: en paralelo o en cadena.</p>
+  <hr class="rule">
+
+  <h3 style="margin-bottom:6px">Bagging vs Boosting — vista de pajaro</h3>
+  <p style="font-size:0.84rem;margin-bottom:10px">El mismo CSV alimenta dos estrategias muy distintas. En <strong>Bagging</strong> el dataset se divide en muestras y cada clasificador trabaja independiente sobre la suya. En <strong>Boosting</strong> los datos se reorganizan en cada paso: los errores del clasificador anterior re-pesan las observaciones que recibe el siguiente.</p>
+
+  <div class="canvas-wrap" style="padding:14px 10px;background:#fafaf8">
+    <svg class="diagram-svg" viewBox="0 0 920 380" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#2d6a4f"/>
+        </marker>
+        <marker id="arrowViolet" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#5c4197"/>
+        </marker>
+        <marker id="arrowFeedback" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#c0392b"/>
+        </marker>
+      </defs>
+
+      <!-- ============== BAGGING PANEL ============== -->
+      <rect x="10" y="10" width="440" height="360" rx="12" fill="none" stroke="#2d6a4f" stroke-width="1.5" stroke-dasharray="6,4"/>
+      <text x="230" y="38" text-anchor="middle" font-family="Zilla Slab, serif" font-size="22" font-weight="600" fill="#2d6a4f">Bagging</text>
+      <text x="230" y="58" text-anchor="middle" font-size="11" fill="#4a4a4a">Cada clasificador es independiente · Voto mayoritario</text>
+
+      <!-- CSV bagging -->
+      <g transform="translate(28,168)">
+        <rect x="0" y="0" width="60" height="76" rx="3" fill="#fff" stroke="#1a1a1a" stroke-width="1.5"/>
+        <path d="M46,0 L60,14 L46,14 z" fill="#d8f3dc" stroke="#1a1a1a" stroke-width="1.5"/>
+        <line x1="8" y1="22" x2="50" y2="22" stroke="#888"/>
+        <line x1="8" y1="30" x2="50" y2="30" stroke="#888"/>
+        <line x1="8" y1="38" x2="50" y2="38" stroke="#888"/>
+        <line x1="8" y1="46" x2="50" y2="46" stroke="#888"/>
+        <rect x="6" y="60" width="48" height="13" fill="#d8f3dc" stroke="#1a1a1a"/>
+        <text x="30" y="70" text-anchor="middle" font-family="Inconsolata,monospace" font-size="10" fill="#1a1a1a">CSV</text>
+      </g>
+
+      <!-- 3 data parallel -->
+      <g transform="translate(150,98)">
+        <rect x="0" y="0" width="52" height="38" fill="#cfe5ff" stroke="#1a3a6b" stroke-width="1"/>
+        <text x="26" y="23" text-anchor="middle" font-family="Inconsolata,monospace" font-size="10" fill="#1a3a6b">data</text>
+      </g>
+      <g transform="translate(150,186)">
+        <rect x="0" y="0" width="52" height="38" fill="#cfe5ff" stroke="#1a3a6b" stroke-width="1"/>
+        <text x="26" y="23" text-anchor="middle" font-family="Inconsolata,monospace" font-size="10" fill="#1a3a6b">data</text>
+      </g>
+      <g transform="translate(150,274)">
+        <rect x="0" y="0" width="52" height="38" fill="#cfe5ff" stroke="#1a3a6b" stroke-width="1"/>
+        <text x="26" y="23" text-anchor="middle" font-family="Inconsolata,monospace" font-size="10" fill="#1a3a6b">data</text>
+      </g>
+
+      <!-- arrows CSV -> 3 data -->
+      <path d="M90,200 Q120,118 150,118" fill="none" stroke="#2d6a4f" stroke-width="1.6" marker-end="url(#arrowGreen)"/>
+      <path d="M90,206 L150,206" fill="none" stroke="#2d6a4f" stroke-width="1.6" marker-end="url(#arrowGreen)"/>
+      <path d="M90,212 Q120,294 150,294" fill="none" stroke="#2d6a4f" stroke-width="1.6" marker-end="url(#arrowGreen)"/>
+
+      <!-- 3 trees -->
+      <g transform="translate(232,98)">
+        <circle cx="22" cy="6" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <circle cx="8" cy="24" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <circle cx="36" cy="24" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <line x1="22" y1="11" x2="10" y2="22" stroke="#1a1a1a"/>
+        <line x1="22" y1="11" x2="34" y2="22" stroke="#1a1a1a"/>
+        <text x="22" y="48" text-anchor="middle" font-size="10" fill="#1a1a1a">Clasificador 1</text>
+      </g>
+      <g transform="translate(232,186)">
+        <circle cx="22" cy="6" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <circle cx="8" cy="24" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <circle cx="36" cy="24" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <line x1="22" y1="11" x2="10" y2="22" stroke="#1a1a1a"/>
+        <line x1="22" y1="11" x2="34" y2="22" stroke="#1a1a1a"/>
+        <text x="22" y="48" text-anchor="middle" font-size="10" fill="#1a1a1a">Clasificador 2</text>
+      </g>
+      <g transform="translate(232,274)">
+        <circle cx="22" cy="6" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <circle cx="8" cy="24" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <circle cx="36" cy="24" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <line x1="22" y1="11" x2="10" y2="22" stroke="#1a1a1a"/>
+        <line x1="22" y1="11" x2="34" y2="22" stroke="#1a1a1a"/>
+        <text x="22" y="48" text-anchor="middle" font-size="10" fill="#1a1a1a">Clasificador 3</text>
+      </g>
+
+      <!-- data -> tree arrows -->
+      <line x1="204" y1="118" x2="230" y2="115" stroke="#2d6a4f" stroke-width="1.6" marker-end="url(#arrowGreen)"/>
+      <line x1="204" y1="206" x2="230" y2="203" stroke="#2d6a4f" stroke-width="1.6" marker-end="url(#arrowGreen)"/>
+      <line x1="204" y1="294" x2="230" y2="291" stroke="#2d6a4f" stroke-width="1.6" marker-end="url(#arrowGreen)"/>
+
+      <!-- aggregator gears bagging -->
+      <g transform="translate(360,180)">
+        <g>
+          <circle cx="20" cy="20" r="18" fill="#f5b800" stroke="#1a1a1a" stroke-width="1.3"/>
+          <circle cx="20" cy="20" r="6" fill="#fff"/>
+          <g stroke="#1a1a1a" stroke-width="1.3">
+            <line x1="20" y1="0" x2="20" y2="6"/>
+            <line x1="20" y1="34" x2="20" y2="40"/>
+            <line x1="0" y1="20" x2="6" y2="20"/>
+            <line x1="34" y1="20" x2="40" y2="20"/>
+            <line x1="6" y1="6" x2="11" y2="11"/>
+            <line x1="29" y1="29" x2="34" y2="34"/>
+            <line x1="34" y1="6" x2="29" y2="11"/>
+            <line x1="11" y1="29" x2="6" y2="34"/>
+          </g>
+        </g>
+        <g transform="translate(28,28)">
+          <circle cx="14" cy="14" r="13" fill="#f5b800" stroke="#1a1a1a" stroke-width="1.3"/>
+          <circle cx="14" cy="14" r="4" fill="#fff"/>
+          <g stroke="#1a1a1a" stroke-width="1.3">
+            <line x1="14" y1="0" x2="14" y2="4"/>
+            <line x1="14" y1="24" x2="14" y2="28"/>
+            <line x1="0" y1="14" x2="4" y2="14"/>
+            <line x1="24" y1="14" x2="28" y2="14"/>
+          </g>
+        </g>
+      </g>
+      <text x="382" y="262" text-anchor="middle" font-size="11" font-weight="600" fill="#2d6a4f">Voto mayoritario</text>
+
+      <!-- tree -> aggregator arrows -->
+      <line x1="277" y1="118" x2="362" y2="190" stroke="#2d6a4f" stroke-width="1.6" marker-end="url(#arrowGreen)"/>
+      <line x1="277" y1="206" x2="362" y2="206" stroke="#2d6a4f" stroke-width="1.6" marker-end="url(#arrowGreen)"/>
+      <line x1="277" y1="294" x2="362" y2="222" stroke="#2d6a4f" stroke-width="1.6" marker-end="url(#arrowGreen)"/>
+
+      <text x="230" y="350" text-anchor="middle" font-family="Inconsolata,monospace" font-size="13" font-weight="600" fill="#2d6a4f" letter-spacing="3">PARALELO</text>
+
+      <!-- ============== BOOSTING PANEL ============== -->
+      <rect x="470" y="10" width="440" height="360" rx="12" fill="none" stroke="#5c4197" stroke-width="1.5" stroke-dasharray="6,4"/>
+      <text x="690" y="38" text-anchor="middle" font-family="Zilla Slab, serif" font-size="22" font-weight="600" fill="#5c4197">Boosting</text>
+      <text x="690" y="58" text-anchor="middle" font-size="11" fill="#4a4a4a">Cada clasificador corrige al anterior · Suma ponderada</text>
+
+      <!-- CSV boosting -->
+      <g transform="translate(488,200)">
+        <rect x="0" y="0" width="60" height="76" rx="3" fill="#fff" stroke="#1a1a1a" stroke-width="1.5"/>
+        <path d="M46,0 L60,14 L46,14 z" fill="#ede7f6" stroke="#1a1a1a" stroke-width="1.5"/>
+        <line x1="8" y1="22" x2="50" y2="22" stroke="#888"/>
+        <line x1="8" y1="30" x2="50" y2="30" stroke="#888"/>
+        <line x1="8" y1="38" x2="50" y2="38" stroke="#888"/>
+        <line x1="8" y1="46" x2="50" y2="46" stroke="#888"/>
+        <rect x="6" y="60" width="48" height="13" fill="#ede7f6" stroke="#1a1a1a"/>
+        <text x="30" y="70" text-anchor="middle" font-family="Inconsolata,monospace" font-size="10" fill="#1a1a1a">CSV</text>
+      </g>
+
+      <!-- data1 (azul), data2 (amarillo), data3 (rojo) -->
+      <g transform="translate(602,98)">
+        <rect x="0" y="0" width="58" height="40" fill="#cfe5ff" stroke="#1a3a6b" stroke-width="1"/>
+        <text x="29" y="17" text-anchor="middle" font-family="Inconsolata,monospace" font-size="10" fill="#1a3a6b">data</text>
+        <text x="29" y="30" text-anchor="middle" font-family="Inconsolata,monospace" font-size="8" fill="#1a3a6b">w iguales</text>
+      </g>
+      <g transform="translate(602,186)">
+        <rect x="0" y="0" width="58" height="40" fill="#fff3cd" stroke="#a0822d" stroke-width="1"/>
+        <text x="29" y="17" text-anchor="middle" font-family="Inconsolata,monospace" font-size="10" fill="#7b4f2e">data</text>
+        <text x="29" y="30" text-anchor="middle" font-family="Inconsolata,monospace" font-size="8" fill="#7b4f2e">re-pesado</text>
+      </g>
+      <g transform="translate(602,274)">
+        <rect x="0" y="0" width="58" height="40" fill="#fadbd8" stroke="#c0392b" stroke-width="1"/>
+        <text x="29" y="17" text-anchor="middle" font-family="Inconsolata,monospace" font-size="10" fill="#c0392b">data</text>
+        <text x="29" y="30" text-anchor="middle" font-family="Inconsolata,monospace" font-size="8" fill="#c0392b">re-pesado</text>
+      </g>
+
+      <!-- CSV -> data1 only (the one entry point) -->
+      <path d="M550,232 Q575,118 602,118" fill="none" stroke="#5c4197" stroke-width="1.6" marker-end="url(#arrowViolet)"/>
+
+      <!-- 3 trees -->
+      <g transform="translate(692,98)">
+        <circle cx="22" cy="6" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <circle cx="8" cy="24" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <circle cx="36" cy="24" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <line x1="22" y1="11" x2="10" y2="22" stroke="#1a1a1a"/>
+        <line x1="22" y1="11" x2="34" y2="22" stroke="#1a1a1a"/>
+        <text x="22" y="48" text-anchor="middle" font-size="10" fill="#1a1a1a">Clasificador 1</text>
+      </g>
+      <g transform="translate(692,186)">
+        <circle cx="22" cy="6" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <circle cx="8" cy="24" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <circle cx="36" cy="24" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <line x1="22" y1="11" x2="10" y2="22" stroke="#1a1a1a"/>
+        <line x1="22" y1="11" x2="34" y2="22" stroke="#1a1a1a"/>
+        <text x="22" y="48" text-anchor="middle" font-size="10" fill="#1a1a1a">Clasificador 2</text>
+      </g>
+      <g transform="translate(692,274)">
+        <circle cx="22" cy="6" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <circle cx="8" cy="24" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <circle cx="36" cy="24" r="5" fill="#fff" stroke="#1a1a1a" stroke-width="1.2"/>
+        <line x1="22" y1="11" x2="10" y2="22" stroke="#1a1a1a"/>
+        <line x1="22" y1="11" x2="34" y2="22" stroke="#1a1a1a"/>
+        <text x="22" y="48" text-anchor="middle" font-size="10" fill="#1a1a1a">Clasificador 3</text>
+      </g>
+
+      <!-- data -> tree arrows -->
+      <line x1="662" y1="118" x2="690" y2="115" stroke="#5c4197" stroke-width="1.6" marker-end="url(#arrowViolet)"/>
+      <line x1="662" y1="206" x2="690" y2="203" stroke="#5c4197" stroke-width="1.6" marker-end="url(#arrowViolet)"/>
+      <line x1="662" y1="294" x2="690" y2="291" stroke="#5c4197" stroke-width="1.6" marker-end="url(#arrowViolet)"/>
+
+      <!-- FEEDBACK loops -->
+      <path d="M738,124 Q780,150 780,165 Q780,200 662,206" fill="none" stroke="#c0392b" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arrowFeedback)"/>
+      <text x="788" y="148" font-size="10" font-style="italic" fill="#c0392b">errores</text>
+
+      <path d="M738,212 Q785,238 785,253 Q785,288 662,294" fill="none" stroke="#c0392b" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arrowFeedback)"/>
+      <text x="793" y="236" font-size="10" font-style="italic" fill="#c0392b">errores</text>
+
+      <!-- aggregator gears boosting -->
+      <g transform="translate(830,180)">
+        <g>
+          <circle cx="20" cy="20" r="18" fill="#f5b800" stroke="#1a1a1a" stroke-width="1.3"/>
+          <circle cx="20" cy="20" r="6" fill="#fff"/>
+          <g stroke="#1a1a1a" stroke-width="1.3">
+            <line x1="20" y1="0" x2="20" y2="6"/>
+            <line x1="20" y1="34" x2="20" y2="40"/>
+            <line x1="0" y1="20" x2="6" y2="20"/>
+            <line x1="34" y1="20" x2="40" y2="20"/>
+            <line x1="6" y1="6" x2="11" y2="11"/>
+            <line x1="29" y1="29" x2="34" y2="34"/>
+            <line x1="34" y1="6" x2="29" y2="11"/>
+            <line x1="11" y1="29" x2="6" y2="34"/>
+          </g>
+        </g>
+        <g transform="translate(28,28)">
+          <circle cx="14" cy="14" r="13" fill="#f5b800" stroke="#1a1a1a" stroke-width="1.3"/>
+          <circle cx="14" cy="14" r="4" fill="#fff"/>
+          <g stroke="#1a1a1a" stroke-width="1.3">
+            <line x1="14" y1="0" x2="14" y2="4"/>
+            <line x1="14" y1="24" x2="14" y2="28"/>
+            <line x1="0" y1="14" x2="4" y2="14"/>
+            <line x1="24" y1="14" x2="28" y2="14"/>
+          </g>
+        </g>
+      </g>
+      <text x="852" y="262" text-anchor="middle" font-size="11" font-weight="600" fill="#5c4197">Suma ponderada</text>
+
+      <!-- tree -> aggregator arrows -->
+      <line x1="737" y1="118" x2="832" y2="190" stroke="#5c4197" stroke-width="1.6" marker-end="url(#arrowViolet)"/>
+      <line x1="737" y1="206" x2="832" y2="206" stroke="#5c4197" stroke-width="1.6" marker-end="url(#arrowViolet)"/>
+      <line x1="737" y1="294" x2="832" y2="222" stroke="#5c4197" stroke-width="1.6" marker-end="url(#arrowViolet)"/>
+
+      <text x="690" y="350" text-anchor="middle" font-family="Inconsolata,monospace" font-size="13" font-weight="600" fill="#5c4197" letter-spacing="3">SECUENCIAL</text>
+    </svg>
+  </div>
+  <p style="font-size:0.74rem;color:var(--soft);margin-top:6px;text-align:center;font-style:italic">En Boosting, las flechas rojas punteadas son la retroalimentacion: los errores del clasificador <em>i</em> reorganizan los pesos de los datos que vera el clasificador <em>i+1</em>.</p>
+
+  <hr class="rule">
+
+  <div class="grid-2">
+    <div>
+      <h3>Tabla comparativa completa</h3>
+      <table>
+        <thead><tr><th>Dimension</th><th>Bagging</th><th>Boosting</th></tr></thead>
+        <tbody>
+          <tr><td>Entrenamiento</td><td>Paralelo (todos a la vez)</td><td>Secuencial (uno tras otro)</td></tr>
+          <tr><td>Datos de cada modelo</td><td>Muestras bootstrap independientes</td><td>Datos re-pesados por errores previos</td></tr>
+          <tr><td>Dependencia entre arboles</td><td>Cero — son independientes</td><td>Total — cada uno depende del anterior</td></tr>
+          <tr><td>Combinacion final</td><td>Voto mayoritario / promedio</td><td>Suma ponderada por desempeno</td></tr>
+          <tr><td>Que problema corrige</td><td>Varianza (overfitting)</td><td>Sesgo (underfitting)</td></tr>
+          <tr><td>Riesgo principal</td><td>Modelos correlacionados</td><td>Sobreajuste a outliers</td></tr>
+          <tr><td>Ejemplo clave</td><td>Random Forest</td><td>AdaBoost / GBM / XGBoost</td></tr>
+          <tr><td>Paralelizable</td><td>Si, trivialmente</td><td>No (por diseno)</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top:16px">Analogia con expertos</h3>
+      <div class="callout">
+        <p><strong>Bagging — comite simultaneo:</strong> 100 expertos reciben copias diferentes del expediente del viaje y votan en paralelo si paga con tarjeta. Como cada uno ve algo distinto, sus errores aleatorios se cancelan al promediar.</p>
+      </div>
+      <div class="callout violet">
+        <p><strong>Boosting — relevo de expertos:</strong> el experto 1 hace su prediccion. El experto 2 recibe el mismo expediente pero con los casos que el 1 fallo subrayados en rojo. El experto 3 estudia los errores del 2. Aprendizaje acumulativo que reduce el sesgo del modelo base.</p>
+      </div>
+
+      <h3 style="margin-top:16px">Arbol genealogico del Boosting</h3>
+      <div class="seq-box">
+        <div class="seq-label">1995 — Primera generacion</div>
+        <span class="tag-green">AdaBoost</span> pesos adaptativos sobre observaciones
+      </div>
+      <div class="seq-arrow">&#8595;</div>
+      <div class="seq-box">
+        <div class="seq-label">2001 — Segunda generacion</div>
+        <span class="tag-violet">Gradient Boosting</span> gradiente del error como objetivo
+      </div>
+      <div class="seq-arrow">&#8595;</div>
+      <div class="seq-box">
+        <div class="seq-label">2016 — Tercera generacion</div>
+        <span class="tag-brown">XGBoost</span> regularizacion + velocidad + escalabilidad
+      </div>
+    </div>
+    <div>
+      <h3>El principio central del Boosting</h3>
+      <p style="font-size:0.84rem;margin-bottom:10px">En el contexto de NYC Taxi (predecir tarjeta vs efectivo):</p>
+      <div class="seq-box" style="border-left:3px solid var(--accent)">
+        <div class="seq-label">Arbol 1 — modelo base debil</div>
+        Aprende regla simple: si <code>fare_amount &gt; 12</code> entonces Tarjeta.<br>
+        Comete errores en viajes cortos con tarjeta y viajes largos en efectivo.
+      </div>
+      <div class="seq-arrow">&#8595; los errores se transmiten</div>
+      <div class="seq-box" style="border-left:3px solid var(--violet)">
+        <div class="seq-label">Arbol 2 — corrige los errores del arbol 1</div>
+        Se enfoca en los viajes mal clasificados.<br>
+        Aprende: si <code>DOLocationID_enc &lt; 0.70</code> entonces Efectivo.
+      </div>
+      <div class="seq-arrow">&#8595; los errores se transmiten</div>
+      <div class="seq-box" style="border-left:3px solid var(--brown)">
+        <div class="seq-label">Arbol 3 — corrige los errores del arbol 2</div>
+        Captura interacciones: zona + distancia + tarifa combinadas.
+      </div>
+      <div class="seq-arrow">&#8595; se combinan N arboles</div>
+      <div class="seq-box" style="background:var(--accent4);border-left:3px solid var(--accent)">
+        <div class="seq-label">Prediccion final</div>
+        <strong>Suma ponderada</strong> de las predicciones de todos los arboles.
+      </div>
+      <div class="callout" style="margin-top:14px">
+        <p><strong>Diferencia clave con Random Forest:</strong> en RF cada arbol ve una muestra aleatoria <em>independiente</em> y todos pesan igual. En Boosting cada arbol ve los errores acumulados del anterior y los pesos finales dependen del rendimiento individual.</p>
+      </div>
+      <div class="callout brown">
+        <p><strong>Por que importa la diferencia:</strong> Bagging promedia <em>opiniones independientes</em> (reduce ruido). Boosting <em>encadena correcciones</em> (reduce error sistematico). Por eso en datasets con relaciones complejas como NYC Taxi, Boosting tiende a ganar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 3 -->
+<section class="slide" id="slide-3">
+  <div class="slide-label">02 — AdaBoost</div>
+  <h2><em>AdaBoost</em> — Adaptive Boosting</h2>
+  <p class="lead">El primer algoritmo de boosting practico (Freund &amp; Schapire, 1995). La intuicion: asignar mas peso a las observaciones mal clasificadas para que el siguiente arbol preste mas atencion a los casos dificiles.</p>
+  <hr class="rule">
+
+  <!-- ── EXPLICACION STUMP ───────────────────────────────────────── -->
+  <h3 style="margin-top:0">Antes de seguir: que es un <em>stump</em>?</h3>
+  <p style="font-size:0.88rem;margin-bottom:10px">Un <strong>stump</strong> (literalmente "tocon" en ingles, como el tronco cortado de un arbol) es un arbol de decision con <strong>una sola pregunta</strong> — es decir, profundidad 1. En vez de un arbol grande que va preguntando cosas en cascada, un stump hace <strong>una unica division</strong> y ya predice. Por eso se llama "tronco": no le crecen ramas, solo tiene la raiz y dos hojas.</p>
+
+  <div class="grid-2" style="gap:24px;align-items:center;margin:14px 0">
+    <div>
+      <p style="font-size:0.84rem;margin-bottom:8px">En el ejemplo del NYC Taxi, un stump se ve asi:</p>
+      <div class="canvas-wrap" style="padding:18px 12px;background:#fafaf8">
+        <svg viewBox="0 0 360 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;font-family:'Jost',sans-serif">
+          <!-- Root node -->
+          <rect x="100" y="20" width="160" height="42" rx="6" fill="#fff" stroke="#1a1a1a" stroke-width="1.5"/>
+          <text x="180" y="38" text-anchor="middle" font-size="11" font-weight="600" fill="#1a1a1a">¿fare_amount &gt; 8.5?</text>
+          <text x="180" y="54" text-anchor="middle" font-family="Inconsolata,monospace" font-size="9" fill="#8a8a8a">una sola pregunta</text>
+
+          <!-- Branches -->
+          <line x1="140" y1="62" x2="80" y2="120" stroke="#1a1a1a" stroke-width="1.5"/>
+          <line x1="220" y1="62" x2="280" y2="120" stroke="#1a1a1a" stroke-width="1.5"/>
+          <text x="100" y="92" text-anchor="middle" font-size="10" font-style="italic" fill="#2d6a4f">si</text>
+          <text x="262" y="92" text-anchor="middle" font-size="10" font-style="italic" fill="#c0392b">no</text>
+
+          <!-- Leaf 1 -->
+          <rect x="20" y="125" width="120" height="42" rx="6" fill="#d8f3dc" stroke="#2d6a4f" stroke-width="1.5"/>
+          <text x="80" y="143" text-anchor="middle" font-size="12" font-weight="600" fill="#2d6a4f">Tarjeta</text>
+          <text x="80" y="158" text-anchor="middle" font-family="Inconsolata,monospace" font-size="9" fill="#2d6a4f">hoja 1</text>
+
+          <!-- Leaf 2 -->
+          <rect x="220" y="125" width="120" height="42" rx="6" fill="#fdf0e8" stroke="#c0392b" stroke-width="1.5"/>
+          <text x="280" y="143" text-anchor="middle" font-size="12" font-weight="600" fill="#c0392b">Efectivo</text>
+          <text x="280" y="158" text-anchor="middle" font-family="Inconsolata,monospace" font-size="9" fill="#c0392b">hoja 2</text>
+
+          <text x="180" y="190" text-anchor="middle" font-family="Inconsolata,monospace" font-size="10" fill="#8a8a8a" letter-spacing="2">RAIZ + 2 HOJAS · DEPTH = 1</text>
+        </svg>
+      </div>
+    </div>
+    <div>
+      <p style="font-size:0.84rem;margin-bottom:8px">Eso es <em>todo</em> el modelo: una pregunta, dos respuestas. Acierta cerca del 68% de las veces (<code>err = 0.32</code>), apenas mejor que tirar una moneda — y ese es justo el punto.</p>
+      <div class="callout violet">
+        <p><strong>Por que AdaBoost los usa:</strong> la idea del boosting es combinar muchos modelos <em>deliberadamente debiles</em>. Si cada arbol individual fuera muy bueno, no habria espacio para que los siguientes corrijan errores. El stump es el clasificador debil canonico: rapido de entrenar, facil de interpretar, y solo un poquito mejor que el azar. AdaBoost junta 50, 100 o 200 stumps, cada uno enfocandose en los casos que el anterior fallo, y la <strong>suma ponderada</strong> termina siendo un modelo fuerte.</p>
+      </div>
+      <div class="explain-example">
+        <span class="cm" style="color:#6a9955"># En sklearn, un stump es simplemente:</span><br>
+        DecisionTreeClassifier(max_depth=<span style="color:#b5cea8">1</span>)
+      </div>
+      <p style="font-size:0.82rem;color:var(--soft);margin-top:6px">Por contraste, GBM y XGBoost usan arboles un poco mas profundos (<code>max_depth=3</code> a <code>6</code>) porque su mecanismo de residuos + regularizacion tolera modelos base algo mas complejos.</p>
+    </div>
+  </div>
+  <hr class="rule">
+
+  <div class="grid-2">
+    <div>
+      <h3>Como funciona paso a paso</h3>
+      <div class="seq-box">
+        <div class="seq-label">Paso 1 — Pesos iniciales iguales</div>
+        Cada viaje del NYC Taxi comienza con el mismo peso:<br>
+        <code>w_i = 1/N</code> para todos los N viajes.
+      </div>
+      <div class="seq-arrow">&#8595;</div>
+      <div class="seq-box">
+        <div class="seq-label">Paso 2 — Entrenar arbol debil (stump)</div>
+        Se entrena un Decision Stump (<code>max_depth=1</code>):<br>
+        "si <code>fare_amount &gt; 8.5</code> entonces Tarjeta".<br>
+        Tasa de error del stump: <code>err = 0.32</code>.
+      </div>
+      <div class="seq-arrow">&#8595;</div>
+      <div class="seq-box">
+        <div class="seq-label">Paso 3 — Calcular peso del arbol (alpha)</div>
+        <code>alpha = 0.5 * ln((1 - err) / err)</code><br>
+        <code>alpha = 0.5 * ln(0.68/0.32) = 0.377</code><br>
+        Arboles con menor error reciben mayor alpha.
+      </div>
+      <div class="seq-arrow">&#8595;</div>
+      <div class="seq-box">
+        <div class="seq-label">Paso 4 — Actualizar pesos de observaciones</div>
+        Viajes <strong>mal clasificados</strong>: peso aumenta x <code>e^alpha</code><br>
+        Viajes bien clasificados: peso disminuye x <code>e^(-alpha)</code><br>
+        Renormalizar para que sumen 1.
+      </div>
+      <div class="seq-arrow">&#8595; repetir T veces</div>
+      <div class="seq-box" style="background:var(--accent4)">
+        <div class="seq-label">Prediccion final</div>
+        <code>F(x) = sign( sum_t alpha_t * h_t(x) )</code><br>
+        Suma ponderada de los T stumps.
+      </div>
+      <h3 style="margin-top:16px">Hiperparametros clave</h3>
+      <table>
+        <thead><tr><th>Parametro</th><th>Descripcion</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td><code>n_estimators</code></td><td>Numero de stumps</td><td>50</td></tr>
+          <tr><td><code>learning_rate</code></td><td>Peso de cada stump en la suma final</td><td>1.0</td></tr>
+          <tr><td><code>max_depth</code></td><td>Profundidad del estimador base</td><td>1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3>Simulacion de pesos — NYC Taxi</h3>
+      <p style="font-size:0.82rem;margin-bottom:10px">Mueve el slider para ver como los pesos cambian en cada iteracion. Los viajes mal clasificados acumulan mas peso.</p>
+      <div style="border:var(--rule);padding:14px">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+          <label style="font-size:0.78rem;color:var(--mid)">Iteracion:</label>
+          <input type="range" id="adaIter" min="1" max="3" value="1">
+          <span id="adaIterVal" style="font-family:'Inconsolata',monospace;font-weight:600;width:20px">1</span>
+        </div>
+        <div id="adaViz" style="font-family:'Inconsolata',monospace;font-size:0.75rem"></div>
+        <div id="adaAlpha" style="margin-top:10px;padding:8px;background:#f8f8f6;font-family:'Inconsolata',monospace;font-size:0.76rem;color:var(--mid)"></div>
+      </div>
+      <h3 style="margin-top:16px">Ventajas y limitaciones</h3>
+      <table>
+        <thead><tr><th></th><th>AdaBoost</th></tr></thead>
+        <tbody>
+          <tr><td>Ventaja</td><td>Simple, pocos hiperparametros</td></tr>
+          <tr><td>Ventaja</td><td>Funciona bien con features binarias</td></tr>
+          <tr><td>Limitacion</td><td>Muy sensible a outliers y ruido</td></tr>
+          <tr><td>Limitacion</td><td>Generalmente superado por GBM y XGBoost</td></tr>
+          <tr><td>NYC Taxi</td><td>Puede distorsionarse con tarifas negativas o errores de GPS</td></tr>
+        </tbody>
+      </table>
+      <div class="callout" style="margin-top:12px">
+        <p><strong>Analogia:</strong> un viaje desde JFK que paga en efectivo (caso atipico) recibe tanto peso que distorsiona el modelo. GBM y XGBoost son mas robustos ante estos casos.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr class="rule">
+
+  <!-- ── DERIVACION DE ALPHA ────────────────────────────────────── -->
+  <h3 style="margin-top:0">De donde sale la formula de <em>alpha</em>?</h3>
+  <p style="font-size:0.9rem;margin-bottom:12px">La formula <code>alpha = 0.5 * ln((1 - err) / err)</code> no es arbitraria ni heuristica. Sale de <strong>resolver un problema de optimizacion</strong>: es exactamente el peso que <em>minimiza la perdida exponencial</em> dado el stump que acabamos de entrenar.</p>
+
+  <h3 style="margin-top:18px">1. La intuicion primero</h3>
+  <p style="font-size:0.86rem;margin-bottom:8px"><code>alpha</code> mide <strong>cuanta confianza darle a cada stump</strong> en la votacion final. Si un stump acierta el 99% de las veces, deberia pesar mucho. Si acierta solo el 51% (apenas mejor que tirar una moneda), deberia pesar muy poco. Mira como se comporta la formula:</p>
+  <table>
+    <thead><tr><th>Error del stump</th><th>Alpha</th><th>Interpretacion</th></tr></thead>
+    <tbody>
+      <tr><td><code>err = 0.01</code> (casi perfecto)</td><td><strong>2.30</strong></td><td>"Confio muchisimo, peso enorme"</td></tr>
+      <tr><td><code>err = 0.10</code></td><td><strong>1.10</strong></td><td>"Confio bastante"</td></tr>
+      <tr><td><code>err = 0.32</code> (nuestro ejemplo)</td><td><strong>0.38</strong></td><td>"Confio un poco, peso modesto"</td></tr>
+      <tr><td><code>err = 0.50</code> (al azar)</td><td><strong>0.00</strong></td><td>"No me sirve, peso cero"</td></tr>
+      <tr><td><code>err = 0.70</code> (peor que azar)</td><td><strong>-0.42</strong></td><td>"Voto al reves de lo que dice"</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:0.84rem;margin-top:8px;color:var(--soft);font-style:italic">El factor <code>0.5</code> y el logaritmo no son cosmeticos: son la solucion matematica a un problema concreto. Veamos cual.</p>
+
+  <hr class="rule" style="margin:20px 0">
+
+  <div class="grid-2">
+    <div>
+      <h3 style="margin-top:0">2. El problema: minimizar la perdida exponencial</h3>
+      <p style="font-size:0.86rem;margin-bottom:10px">AdaBoost se puede derivar como una <strong>minimizacion greedy de la funcion de perdida exponencial</strong>:</p>
+      <div class="explain-example">
+        L = &Sigma;<sub>i</sub> exp( - y<sub>i</sub> &middot; F(x<sub>i</sub>) )
+      </div>
+      <p style="font-size:0.84rem;margin-top:8px">donde:</p>
+      <ul style="font-size:0.84rem;color:var(--mid);padding-left:20px;line-height:1.7;margin:6px 0">
+        <li><code>y<sub>i</sub> &isin; {-1, +1}</code> es la etiqueta real (Efectivo = -1, Tarjeta = +1)</li>
+        <li><code>F(x) = &alpha;<sub>1</sub>h<sub>1</sub>(x) + &alpha;<sub>2</sub>h<sub>2</sub>(x) + ...</code> es la suma ponderada de stumps</li>
+      </ul>
+      <p style="font-size:0.86rem;margin-top:10px">La pregunta de cada iteracion es:</p>
+      <div class="callout violet">
+        <p><strong>Dado el modelo que ya tengo, &iquest;que <code>alpha</code> debo darle al nuevo stump <code>h_t</code> para reducir la perdida lo maximo posible?</strong></p>
+      </div>
+      <p style="font-size:0.84rem;margin-top:10px">Cuando anades el stump <code>h_t</code> con peso <code>&alpha;</code>, la perdida queda:</p>
+      <div class="explain-example">
+        L(&alpha;) = &Sigma;<sub>i</sub> w<sub>i</sub> &middot; exp( - y<sub>i</sub> &middot; &alpha; &middot; h<sub>t</sub>(x<sub>i</sub>) )
+      </div>
+      <p style="font-size:0.84rem;margin-top:8px">Como <code>y<sub>i</sub></code> y <code>h<sub>t</sub>(x<sub>i</sub>)</code> solo valen &plusmn;1, el producto <code>y<sub>i</sub> &middot; h<sub>t</sub>(x<sub>i</sub>)</code> es <strong>+1 si acierta</strong> y <strong>-1 si falla</strong>. Entonces puedes partir la suma en dos:</p>
+      <div class="explain-example">
+        L(&alpha;) = (&Sigma;<sub>aciertos</sub> w<sub>i</sub>) &middot; e<sup>-&alpha;</sup> + (&Sigma;<sub>errores</sub> w<sub>i</sub>) &middot; e<sup>&alpha;</sup><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = (1 - err) &middot; e<sup>-&alpha;</sup> + err &middot; e<sup>&alpha;</sup>
+      </div>
+      <p style="font-size:0.82rem;margin-top:6px;color:var(--soft);font-style:italic">(usando que los pesos estan normalizados y <code>err</code> = suma de pesos de los mal clasificados)</p>
+    </div>
+
+    <div>
+      <h3 style="margin-top:0">3. La derivacion</h3>
+      <p style="font-size:0.86rem;margin-bottom:10px"><strong>Derivamos respecto a <code>&alpha;</code> e igualamos a cero</strong> para encontrar el minimo:</p>
+      <div class="explain-example">
+        <span style="color:#6a9955"># Derivada de la perdida</span><br>
+        dL/d&alpha; = -(1 - err) &middot; e<sup>-&alpha;</sup> + err &middot; e<sup>&alpha;</sup> = 0<br><br>
+        <span style="color:#6a9955"># Despejamos</span><br>
+        err &middot; e<sup>&alpha;</sup> = (1 - err) &middot; e<sup>-&alpha;</sup><br>
+        e<sup>2&alpha;</sup> = (1 - err) / err<br>
+        2&alpha; = ln( (1 - err) / err )<br><br>
+        <span style="color:#dcdcaa">&alpha; = 0.5 &middot; ln( (1 - err) / err )</span> &nbsp;&#10003;
+      </div>
+      <div class="callout brown" style="margin-top:12px">
+        <p><strong>Ahi esta la formula.</strong> No es una heuristica — es exactamente el <code>alpha</code> que minimiza la perdida exponencial dado el stump que acabamos de entrenar. El <code>0.5</code> sale de despejar el <code>2&alpha;</code> cuando elevamos a la <code>e</code>.</p>
+      </div>
+
+      <h3 style="margin-top:18px">4. Por que el logaritmo tiene sentido</h3>
+      <p style="font-size:0.86rem;margin-bottom:8px">El cociente <code>(1-err)/err</code> es lo que en estadistica se llama <strong>odds</strong>: razon entre aciertos y errores. Si el stump acierta 68 vs 32, los odds son <code>0.68/0.32 = 2.125</code>.</p>
+      <p style="font-size:0.86rem;margin-bottom:8px">El <code>ln</code> convierte esos odds en una <strong>escala simetrica alrededor de cero</strong>:</p>
+      <table>
+        <thead><tr><th>Odds</th><th>ln(odds)</th><th>Significado</th></tr></thead>
+        <tbody>
+          <tr><td>= 1 (random)</td><td>0</td><td>&alpha; = 0 — no aporta</td></tr>
+          <tr><td>&gt; 1 (mejor que random)</td><td>&gt; 0</td><td>&alpha; positivo — suma al voto</td></tr>
+          <tr><td>&lt; 1 (peor que random)</td><td>&lt; 0</td><td>&alpha; negativo — voltea el voto</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:0.82rem;margin-top:8px;color:var(--mid);font-style:italic">Si un modelo se equivoca sistematicamente, voltearle el voto tambien aporta informacion. Por eso <code>alpha</code> negativo es valido y util.</p>
+    </div>
+  </div>
+
+  <hr class="rule" style="margin:20px 0">
+
+  <h3 style="margin-top:0">5. El resultado mas elegante</h3>
+  <div class="callout">
+    <p>La misma derivacion produce <strong>tambien la regla de actualizacion de pesos del Paso 4</strong>. Si haces el calculo, los nuevos pesos son:</p>
+  </div>
+  <div class="explain-example">
+    w<sub>i</sub><sup>nuevo</sup> = w<sub>i</sub> &middot; exp( - y<sub>i</sub> &middot; &alpha; &middot; h<sub>t</sub>(x<sub>i</sub>) )<br><br>
+    <span style="color:#6a9955"># Que es exactamente:</span><br>
+    si fallo el viaje &nbsp;&rarr;&nbsp; w<sub>i</sub> &middot; e<sup>+&alpha;</sup> &nbsp; (peso sube)<br>
+    si acerto el viaje &rarr;&nbsp; w<sub>i</sub> &middot; e<sup>-&alpha;</sup> &nbsp; (peso baja)
+  </div>
+  <p style="font-size:0.86rem;margin-top:10px">Toda la mecanica de AdaBoost — el peso del arbol <strong>y</strong> la actualizacion de observaciones — cae naturalmente de minimizar la perdida exponencial paso a paso. No son dos reglas separadas: son <strong>la misma matematica</strong> vista desde dos angulos.</p>
+  <div class="callout violet" style="margin-top:10px">
+    <p><strong>Por eso AdaBoost funciona:</strong> en cada iteracion estamos haciendo descenso por coordenadas sobre la perdida exponencial. Cada stump nuevo + su <code>alpha</code> es el paso optimo en la direccion del minimo. La elegancia matematica es la razon por la que sobrevivio 30 anos.</p>
+  </div>
+</section>
+
+<!-- SLIDE 4 -->
+<section class="slide" id="slide-4">
+  <div class="slide-label">03 — Gradient Boosting</div>
+  <h2>Gradient <em>Boosting</em> — aprender los residuos</h2>
+  <p class="lead">En lugar de ajustar pesos de observaciones, Gradient Boosting ajusta residuos. Cada nuevo arbol aprende a predecir el error que el modelo acumulado aun no ha capturado.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>La idea del gradiente</h3>
+      <div class="callout violet" style="margin-bottom:12px">
+        <p><strong>Intuicion clave:</strong> en lugar de preguntarle al siguiente arbol "clasifica este viaje", le preguntamos "predice cuanto se equivoco el modelo anterior en este viaje". El residuo es el maestro.</p>
+      </div>
+      <div class="seq-box">
+        <div class="seq-label">Iteracion 0 — modelo inicial</div>
+        Prediccion base: proporcion de tarjeta en el train.<br>
+        <code>F_0(x) = log(p/(1-p))</code> donde p = 0.70<br>
+        Residuo inicial = y - F_0(x) para cada viaje.
+      </div>
+      <div class="seq-arrow">&#8595;</div>
+      <div class="seq-box">
+        <div class="seq-label">Iteracion 1 — primer arbol sobre residuos</div>
+        El arbol 1 NO predice Tarjeta/Efectivo directamente.<br>
+        Predice el <strong>residuo</strong>: cuanto nos equivocamos en cada viaje.<br>
+        <code>F_1 = F_0 + lr * h_1</code>
+      </div>
+      <div class="seq-arrow">&#8595;</div>
+      <div class="seq-box">
+        <div class="seq-label">Iteracion 2 — segundo arbol sobre nuevos residuos</div>
+        Se calculan los nuevos residuos de F_1.<br>
+        El arbol 2 aprende a predecir esos residuos.<br>
+        <code>F_2 = F_1 + lr * h_2</code>
+      </div>
+      <div class="seq-arrow">&#8595; T iteraciones</div>
+      <div class="seq-box" style="background:var(--violet3)">
+        <div class="seq-label">Prediccion final</div>
+        <code>F_T(x) = F_0 + lr*(h_1 + h_2 + ... + h_T)</code><br>
+        Pasado por sigmoid para obtener probabilidad.
+      </div>
+      <h3 style="margin-top:14px">Hiperparametros clave</h3>
+      <table>
+        <thead><tr><th>Parametro</th><th>Descripcion</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td><code>n_estimators</code></td><td>Numero de arboles</td><td>100</td></tr>
+          <tr><td><code>learning_rate</code></td><td>Tasa de aprendizaje</td><td>0.1</td></tr>
+          <tr><td><code>max_depth</code></td><td>Profundidad de cada arbol</td><td>3</td></tr>
+          <tr><td><code>subsample</code></td><td>Fraccion de datos por arbol</td><td>1.0</td></tr>
+          <tr><td><code>min_samples_leaf</code></td><td>Minimo de obs por hoja</td><td>1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3>Simulacion interactiva — curva de aprendizaje</h3>
+      <p style="font-size:0.82rem;margin-bottom:10px">Ajusta los hiperparametros y observa como evoluciona el AUC-ROC en NYC Taxi (simulado).</p>
+      <div style="border:var(--rule);padding:14px">
+        <div style="margin-bottom:10px">
+          <label style="font-size:0.76rem;color:var(--mid)">n_estimators: <span id="gbNLabel" style="font-weight:600;color:var(--violet)">100</span></label>
+          <input type="range" id="gbN" min="10" max="300" value="100" step="10">
+        </div>
+        <div style="margin-bottom:10px">
+          <label style="font-size:0.76rem;color:var(--mid)">learning_rate: <span id="gbLrLabel" style="font-weight:600;color:var(--violet)">0.10</span></label>
+          <input type="range" id="gbLr" min="1" max="30" value="10">
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:0.76rem;color:var(--mid)">max_depth: <span id="gbDepthLabel" style="font-weight:600;color:var(--violet)">3</span></label>
+          <input type="range" id="gbDepth" min="1" max="8" value="3">
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="gbCanvas" width="380" height="180"></canvas>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px">
+          <div class="metric-box violet"><div class="val" id="gbAUC">—</div><div class="lbl">AUC-ROC est.</div></div>
+          <div class="metric-box"><div class="val" id="gbTrees">—</div><div class="lbl">Arboles</div></div>
+          <div class="metric-box brown"><div class="val" id="gbRisk">—</div><div class="lbl">Overfitting</div></div>
+        </div>
+      </div>
+      <div class="explain-example" style="margin-top:14px">
+        lr alto + pocos arboles  --&gt; aprende rapido, riesgo overfitting<br>
+        lr bajo  + muchos arboles --&gt; aprende lento, generalmente mejor<br><br>
+        Regla practica (Friedman):<br>
+        lr &lt;= 0.1 con n_estimators entre 100 y 500
+      </div>
+      <div class="callout violet">
+        <p><strong>En NYC Taxi:</strong> con 7 features limpias y ~440K filas de train, GBM con <code>lr=0.05</code>, <code>n_estimators=200</code>, <code>max_depth=4</code> tipicamente alcanza AUC-ROC entre 0.68 y 0.73.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 5 -->
+<section class="slide" id="slide-5">
+  <div class="slide-label">04 — XGBoost</div>
+  <h2><em>XGBoost</em> — Extreme Gradient Boosting</h2>
+  <p class="lead">Chen &amp; Guestrin (2016). Mismo principio que GBM pero con regularizacion L1/L2, manejo nativo de valores faltantes, poda por ganancia y paralelizacion por columnas.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>Que agrega XGBoost sobre GBM</h3>
+      <table>
+        <thead><tr><th>Aspecto</th><th>GBM</th><th>XGBoost</th></tr></thead>
+        <tbody>
+          <tr><td>Regularizacion</td><td>Solo via max_depth</td><td>L1 (alpha) + L2 (lambda)</td></tr>
+          <tr><td>Valores faltantes</td><td>Requiere imputacion</td><td>Manejo nativo automatico</td></tr>
+          <tr><td>Velocidad</td><td>Lento en datos grandes</td><td>Paralelizacion por columnas</td></tr>
+          <tr><td>Poda del arbol</td><td>Por profundidad</td><td>Por ganancia (gamma)</td></tr>
+          <tr><td>Subsampling</td><td>Por filas</td><td>Por filas Y por columnas</td></tr>
+          <tr><td>Early stopping</td><td>No nativo</td><td>Nativo con eval_set</td></tr>
+        </tbody>
+      </table>
+      <h3 style="margin-top:14px">La funcion objetivo de XGBoost</h3>
+      <div class="explain-example">
+        Obj = L(y, y_hat) + Omega(f)<br><br>
+        L         = perdida (log-loss para clasificacion)<br>
+        Omega(f)  = penalizacion por complejidad<br>
+                  = gamma * T + 0.5 * lambda * sum(w_j^2)<br><br>
+        T         = numero de hojas<br>
+        w_j       = valor predicho en cada hoja<br>
+        gamma     = costo de crear una nueva hoja<br>
+        lambda    = penalizacion L2 sobre los pesos
+      </div>
+      <div class="callout brown">
+        <p><strong>En NYC Taxi:</strong> <code>gamma</code> actua como control de overfitting. Si el beneficio de agregar una hoja no supera <code>gamma</code>, el arbol no crece. Util para zonas con pocos viajes.</p>
+      </div>
+      <h3 style="margin-top:14px">Hiperparametros clave</h3>
+      <table>
+        <thead><tr><th>Parametro</th><th>Descripcion</th><th>Rango tipico</th></tr></thead>
+        <tbody>
+          <tr><td><code>n_estimators</code></td><td>Numero de arboles</td><td>100–1000</td></tr>
+          <tr><td><code>learning_rate</code></td><td>Shrinkage (eta)</td><td>0.01–0.3</td></tr>
+          <tr><td><code>max_depth</code></td><td>Profundidad maxima</td><td>3–8</td></tr>
+          <tr><td><code>subsample</code></td><td>Fraccion de filas</td><td>0.6–1.0</td></tr>
+          <tr><td><code>colsample_bytree</code></td><td>Fraccion de columnas</td><td>0.6–1.0</td></tr>
+          <tr><td><code>gamma</code></td><td>Ganancia minima para split</td><td>0–5</td></tr>
+          <tr><td><code>reg_alpha</code></td><td>Regularizacion L1</td><td>0–1</td></tr>
+          <tr><td><code>reg_lambda</code></td><td>Regularizacion L2</td><td>1–10</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3>Early stopping — parar antes de overfittear</h3>
+      <div class="seq-box">
+        <div class="seq-label">Sin early stopping</div>
+        Se entrenan los 500 arboles completos.<br>
+        AUC en train sigue subiendo.<br>
+        AUC en test empieza a bajar a partir del arbol 180.<br>
+        <strong>Resultado: overfitting silencioso.</strong>
+      </div>
+      <div class="seq-arrow">&#8595;</div>
+      <div class="seq-box" style="background:var(--brown3)">
+        <div class="seq-label">Con early_stopping_rounds=20</div>
+        XGBoost monitorea el AUC en el eval_set.<br>
+        Si no mejora en 20 rondas, se detiene automaticamente.<br>
+        <strong>Resultado: el modelo optimo se guarda.</strong>
+      </div>
+      <div class="canvas-wrap" style="margin-top:14px">
+        <canvas id="xgbCanvas" width="380" height="180"></canvas>
+      </div>
+      <p style="font-size:0.74rem;color:var(--soft);margin-top:4px">Curvas de AUC train vs test. La linea roja marca el punto de early stopping.</p>
+      <button class="btn brown" style="margin-top:10px" onclick="animateXGB()">Simular entrenamiento</button>
+      <div class="explain-example" style="margin-top:14px">
+        model = xgb.XGBClassifier(<br>
+        &nbsp;&nbsp;n_estimators=500,<br>
+        &nbsp;&nbsp;learning_rate=0.05,<br>
+        &nbsp;&nbsp;early_stopping_rounds=20,<br>
+        &nbsp;&nbsp;eval_metric='auc'<br>
+        )<br>
+        model.fit(X_train_bal, y_train_bal,<br>
+        &nbsp;&nbsp;eval_set=[(X_test_clean, y_test)]<br>
+        )
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 6 -->
+<section class="slide" id="slide-6">
+  <div class="slide-label">05 — Comparacion</div>
+  <h2>Los tres modelos <em>comparados</em></h2>
+  <p class="lead">Contexto: prediccion de pago con tarjeta en NYC Taxi. Features sin leakage: trip_distance, fare_amount, tolls_amount, passenger_count, airport, PULocationID_enc, DOLocationID_enc.</p>
+  <hr class="rule">
+  <div class="grid-2">
+    <div>
+      <h3>Tabla comparativa completa</h3>
+      <table>
+        <thead><tr><th>Dimension</th><th>AdaBoost</th><th>GBM</th><th>XGBoost</th></tr></thead>
+        <tbody>
+          <tr><td>Generacion</td><td>1995</td><td>2001</td><td>2016</td></tr>
+          <tr><td>Estimador base</td><td>Stump (depth=1)</td><td>Arbol pequeno</td><td>Arbol pequeno</td></tr>
+          <tr><td>Mecanismo</td><td>Pesos adaptativos</td><td>Residuos</td><td>Residuos + regularizacion</td></tr>
+          <tr><td>Regularizacion</td><td>No</td><td>Indirecta</td><td>L1 + L2 + gamma</td></tr>
+          <tr><td>Outliers</td><td>Muy sensible</td><td>Moderado</td><td>Robusto</td></tr>
+          <tr><td>Velocidad (550K)</td><td>Rapido</td><td>Lento</td><td>Medio-rapido</td></tr>
+          <tr><td>Early stopping</td><td>No</td><td>No nativo</td><td>Si, nativo</td></tr>
+          <tr><td>NaN nativos</td><td>No</td><td>No</td><td>Si</td></tr>
+          <tr><td>AUC-ROC est.</td><td>0.62–0.66</td><td>0.68–0.73</td><td>0.70–0.76</td></tr>
+        </tbody>
+      </table>
+      <h3 style="margin-top:16px">Cuando usar cada uno</h3>
+      <table>
+        <thead><tr><th>Modelo</th><th>Usalo cuando...</th></tr></thead>
+        <tbody>
+          <tr><td>AdaBoost</td><td>Dataset pequeno, features binarias, quieres interpretabilidad de los stumps</td></tr>
+          <tr><td>GBM</td><td>Datos medianos, buen punto de partida sin librerias extra</td></tr>
+          <tr><td>XGBoost</td><td>Dataset grande como NYC Taxi, cuando el tiempo de computo importa</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3>Comparacion de AUC-ROC estimado</h3>
+      <div style="border:var(--rule);padding:14px;margin-bottom:14px">
+        <div id="compBars"></div>
+        <p style="font-size:0.74rem;color:var(--soft);margin-top:8px">Valores estimados para NYC Taxi sin leakage. CART como referencia.</p>
+      </div>
+      <h3>Progresion historica</h3>
+      <div class="canvas-wrap">
+        <canvas id="compCanvas" width="360" height="200"></canvas>
+      </div>
+      <div class="grid-3" style="margin-top:14px">
+        <div class="metric-box"><div class="val">0.63</div><div class="lbl">CART baseline</div></div>
+        <div class="metric-box violet"><div class="val">0.70</div><div class="lbl">GBM tipico</div></div>
+        <div class="metric-box brown"><div class="val">0.73</div><div class="lbl">XGBoost tipico</div></div>
+      </div>
+      <div class="callout" style="margin-top:14px">
+        <p><strong>Reflexion:</strong> pasar de 0.63 (CART) a 0.73 (XGBoost) con las mismas variables es una mejora de 16% en capacidad discriminatoria. En un sistema de deteccion de fraude, esta diferencia tiene impacto operativo real.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 7 -->
+<section class="slide" id="slide-7">
+  <div class="slide-label">06 — Codigo</div>
+  <h2>Implementacion en <em>Python</em></h2>
+  <p class="lead">Codigo completo listo para Jupyter con NYC Taxi 2024. Asume X_train_bal, y_train_bal, X_test_clean, y_test del pipeline anterior.</p>
+  <hr class="rule">
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <button class="btn" onclick="showCode('ada')">AdaBoost</button>
+    <button class="btn violet" onclick="showCode('gbm')">Gradient Boosting</button>
+    <button class="btn brown" onclick="showCode('xgb')">XGBoost</button>
+    <button class="btn blue" onclick="showCode('comp')">Comparacion</button>
+  </div>
+
+  <div id="codeAda" class="code-block">
+<span class="cm"># AdaBoost — NYC Taxi: Tarjeta vs Efectivo</span>
+<span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> AdaBoostClassifier
+<span class="kw">from</span> sklearn.tree <span class="kw">import</span> DecisionTreeClassifier
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> classification_report, roc_auc_score
+
+ada = AdaBoostClassifier(
+    estimator=DecisionTreeClassifier(max_depth=<span class="nm">1</span>),
+    n_estimators=<span class="nm">100</span>,
+    learning_rate=<span class="nm">0.5</span>,
+    random_state=<span class="nm">42</span>
+)
+ada.fit(X_train_bal, y_train_bal)
+
+y_pred_ada  = ada.predict(X_test_clean)
+y_proba_ada = ada.predict_proba(X_test_clean)[:, <span class="nm">1</span>]
+
+<span class="kw">print</span>(<span class="st">"AUC-ROC AdaBoost:"</span>, roc_auc_score(y_test, y_proba_ada).round(<span class="nm">4</span>))
+<span class="kw">print</span>(classification_report(y_test, y_pred_ada,
+      target_names=[<span class="st">"Efectivo"</span>, <span class="st">"Tarjeta"</span>]))
+
+<span class="cm"># Importancia de variables</span>
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+importancias = pd.Series(
+    ada.feature_importances_,
+    index=X_test_clean.columns
+).sort_values(ascending=<span class="kw">False</span>)
+<span class="kw">print</span>(importancias)
+  </div>
+
+  <div id="codeGbm" class="code-block" style="display:none">
+<span class="cm"># Gradient Boosting — NYC Taxi: Tarjeta vs Efectivo</span>
+<span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> GradientBoostingClassifier
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> classification_report, roc_auc_score
+
+gbm = GradientBoostingClassifier(
+    n_estimators=<span class="nm">200</span>,
+    learning_rate=<span class="nm">0.05</span>,
+    max_depth=<span class="nm">4</span>,
+    subsample=<span class="nm">0.8</span>,
+    min_samples_leaf=<span class="nm">50</span>,
+    random_state=<span class="nm">42</span>
+)
+gbm.fit(X_train_bal, y_train_bal)
+
+y_pred_gbm  = gbm.predict(X_test_clean)
+y_proba_gbm = gbm.predict_proba(X_test_clean)[:, <span class="nm">1</span>]
+
+<span class="kw">print</span>(<span class="st">"AUC-ROC GBM:"</span>, roc_auc_score(y_test, y_proba_gbm).round(<span class="nm">4</span>))
+<span class="kw">print</span>(classification_report(y_test, y_pred_gbm,
+      target_names=[<span class="st">"Efectivo"</span>, <span class="st">"Tarjeta"</span>]))
+
+<span class="cm"># Curva de aprendizaje por iteracion</span>
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+aucs = [roc_auc_score(y_test, proba[:, <span class="nm">1</span>])
+        <span class="kw">for</span> proba <span class="kw">in</span> gbm.staged_predict_proba(X_test_clean)]
+plt.plot(aucs)
+plt.xlabel(<span class="st">"Iteracion"</span>); plt.ylabel(<span class="st">"AUC-ROC"</span>)
+plt.title(<span class="st">"Curva de aprendizaje GBM"</span>)
+plt.show()
+  </div>
+
+  <div id="codeXgb" class="code-block" style="display:none">
+<span class="cm"># XGBoost — NYC Taxi: Tarjeta vs Efectivo</span>
+<span class="cm"># pip install xgboost</span>
+<span class="kw">import</span> xgboost <span class="kw">as</span> xgb
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> classification_report, roc_auc_score
+
+model_xgb = xgb.XGBClassifier(
+    n_estimators=<span class="nm">500</span>,
+    learning_rate=<span class="nm">0.05</span>,
+    max_depth=<span class="nm">4</span>,
+    subsample=<span class="nm">0.8</span>,
+    colsample_bytree=<span class="nm">0.8</span>,
+    gamma=<span class="nm">0.1</span>,
+    reg_alpha=<span class="nm">0.1</span>,
+    reg_lambda=<span class="nm">1.0</span>,
+    early_stopping_rounds=<span class="nm">20</span>,
+    eval_metric=<span class="st">'auc'</span>,
+    random_state=<span class="nm">42</span>
+)
+model_xgb.fit(
+    X_train_bal, y_train_bal,
+    eval_set=[(X_test_clean, y_test)],
+    verbose=<span class="nm">50</span>
+)
+
+y_pred_xgb  = model_xgb.predict(X_test_clean)
+y_proba_xgb = model_xgb.predict_proba(X_test_clean)[:, <span class="nm">1</span>]
+
+<span class="kw">print</span>(f<span class="st">"Arboles usados: {model_xgb.best_iteration}"</span>)
+<span class="kw">print</span>(<span class="st">"AUC-ROC XGBoost:"</span>, roc_auc_score(y_test, y_proba_xgb).round(<span class="nm">4</span>))
+<span class="kw">print</span>(classification_report(y_test, y_pred_xgb,
+      target_names=[<span class="st">"Efectivo"</span>, <span class="st">"Tarjeta"</span>]))
+  </div>
+
+  <div id="codeComp" class="code-block" style="display:none">
+<span class="cm"># Comparacion completa de todos los modelos — NYC Taxi</span>
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> roc_auc_score, roc_curve
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+modelos = {
+    <span class="st">"CART baseline"</span> : y_proba_base,
+    <span class="st">"AdaBoost"</span>       : y_proba_ada,
+    <span class="st">"GBM"</span>            : y_proba_gbm,
+    <span class="st">"XGBoost"</span>        : y_proba_xgb,
+}
+colores = [<span class="st">"#8a8a8a"</span>, <span class="st">"#2d6a4f"</span>, <span class="st">"#5c4197"</span>, <span class="st">"#7b4f2e"</span>]
+
+<span class="kw">print</span>(<span class="st">"="</span>*<span class="nm">45</span>)
+<span class="kw">print</span>(f<span class="st">"{'Modelo':<20} {'AUC-ROC':>10}"</span>)
+<span class="kw">print</span>(<span class="st">"-"</span>*<span class="nm">45</span>)
+<span class="kw">for</span> nombre, proba <span class="kw">in</span> modelos.items():
+    auc = roc_auc_score(y_test, proba)
+    <span class="kw">print</span>(f<span class="st">"{nombre:<20} {auc:>10.4f}"</span>)
+<span class="kw">print</span>(<span class="st">"="</span>*<span class="nm">45</span>)
+
+fig, ax = plt.subplots(figsize=(<span class="nm">7</span>, <span class="nm">5</span>))
+<span class="kw">for</span> (nombre, proba), color <span class="kw">in</span> zip(modelos.items(), colores):
+    fpr, tpr, _ = roc_curve(y_test, proba)
+    auc = roc_auc_score(y_test, proba)
+    ax.plot(fpr, tpr, label=f<span class="st">"{nombre} (AUC={auc:.4f})"</span>, color=color, lw=<span class="nm">2</span>)
+ax.plot([<span class="nm">0</span>,<span class="nm">1</span>],[<span class="nm">0</span>,<span class="nm">1</span>],<span class="st">'k--'</span>, lw=<span class="nm">1</span>)
+ax.set_xlabel(<span class="st">"Tasa de Falsos Positivos"</span>)
+ax.set_ylabel(<span class="st">"Tasa de Verdaderos Positivos"</span>)
+ax.set_title(<span class="st">"Curvas ROC — Todos los modelos"</span>)
+ax.legend(loc=<span class="st">"lower right"</span>, fontsize=<span class="nm">9</span>)
+plt.tight_layout(); plt.show()
+  </div>
+
+  <div class="callout" style="margin-top:16px">
+    <p><strong>Nota de instalacion:</strong> AdaBoost y GBM estan incluidos en scikit-learn. XGBoost requiere instalacion separada: <code>pip install xgboost</code> o <code>conda install -c conda-forge xgboost</code>.</p>
+  </div>
+</section>
+
+<script>
+(function() {
+  function goTo(n, btn) {
+    document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('slide-' + n).classList.add('active');
+    btn.classList.add('active');
+    if (n === 3) initAda();
+    if (n === 4) { initGB(); drawGB(); }
+    if (n === 5) drawXGBStatic();
+    if (n === 6) { drawComp(); drawCompBars(); }
+  }
+  window.goTo = goTo;
+
+  // ── ADABOOST SIM ──────────────────────────────────────────────────
+  const adaData = [
+    { err: 0.32, alpha: 0.377,
+      trips: [
+        {id:'Viaje A', real:'Tarjeta', pred:'Tarjeta', ok:true,  w:0.100, wNew:0.072},
+        {id:'Viaje B', real:'Efectivo',pred:'Efectivo',ok:true,  w:0.100, wNew:0.072},
+        {id:'Viaje C', real:'Efectivo',pred:'Tarjeta', ok:false, w:0.100, wNew:0.139},
+        {id:'Viaje D', real:'Tarjeta', pred:'Efectivo',ok:false, w:0.100, wNew:0.139},
+        {id:'Viaje E', real:'Tarjeta', pred:'Tarjeta', ok:true,  w:0.100, wNew:0.072},
+      ]},
+    { err: 0.24, alpha: 0.529,
+      trips: [
+        {id:'Viaje A', real:'Tarjeta', pred:'Tarjeta', ok:true,  w:0.072, wNew:0.051},
+        {id:'Viaje B', real:'Efectivo',pred:'Efectivo',ok:true,  w:0.072, wNew:0.051},
+        {id:'Viaje C', real:'Efectivo',pred:'Efectivo',ok:true,  w:0.139, wNew:0.099},
+        {id:'Viaje D', real:'Tarjeta', pred:'Tarjeta', ok:true,  w:0.139, wNew:0.099},
+        {id:'Viaje E', real:'Tarjeta', pred:'Efectivo',ok:false, w:0.072, wNew:0.120},
+      ]},
+    { err: 0.18, alpha: 0.754,
+      trips: [
+        {id:'Viaje A', real:'Tarjeta', pred:'Tarjeta', ok:true,  w:0.051, wNew:0.038},
+        {id:'Viaje B', real:'Efectivo',pred:'Efectivo',ok:true,  w:0.051, wNew:0.038},
+        {id:'Viaje C', real:'Efectivo',pred:'Efectivo',ok:true,  w:0.099, wNew:0.074},
+        {id:'Viaje D', real:'Tarjeta', pred:'Tarjeta', ok:true,  w:0.099, wNew:0.074},
+        {id:'Viaje E', real:'Tarjeta', pred:'Tarjeta', ok:true,  w:0.120, wNew:0.089},
+      ]}
+  ];
+
+  function initAda() {
+    const sl = document.getElementById('adaIter');
+    if (!sl) return;
+    sl.oninput = renderAda;
+    renderAda();
+  }
+
+  function renderAda() {
+    const iter = parseInt(document.getElementById('adaIter').value) - 1;
+    document.getElementById('adaIterVal').textContent = iter + 1;
+    const d = adaData[iter];
+    let html = '<div style="display:grid;grid-template-columns:auto auto auto auto auto;gap:4px 10px;align-items:center">';
+    html += '<span style="color:var(--soft);font-size:0.68rem">VIAJE</span><span style="color:var(--soft);font-size:0.68rem">REAL</span><span style="color:var(--soft);font-size:0.68rem">PRED</span><span style="color:var(--soft);font-size:0.68rem">W.ANT</span><span style="color:var(--soft);font-size:0.68rem">W.NUEVO</span>';
+    d.trips.forEach(t => {
+      const col = t.ok ? 'var(--success)' : 'var(--danger)';
+      html += `<span>${t.id}</span><span>${t.real}</span><span style="color:${col}">${t.pred}</span><span>${t.w.toFixed(3)}</span><span style="font-weight:${t.ok?400:700};color:${t.ok?'inherit':'var(--danger)'}"> ${t.wNew.toFixed(3)}${!t.ok?' &#8593;':''}</span>`;
+    });
+    html += '</div>';
+    document.getElementById('adaViz').innerHTML = html;
+    document.getElementById('adaAlpha').innerHTML = `Iteracion ${iter+1} | Error: <strong>${d.err}</strong> | Alpha: <strong>${d.alpha}</strong> | = 0.5*ln((1-${d.err})/${d.err})`;
+  }
+
+  // ── GBM SIM ────────────────────────────────────────────────────────
+  let gbCtx = null;
+  function initGB() {
+    const cv = document.getElementById('gbCanvas');
+    if (!cv) return;
+    gbCtx = cv.getContext('2d');
+    ['gbN','gbLr','gbDepth'].forEach(id => {
+      document.getElementById(id).oninput = () => { syncGBLabels(); drawGB(); };
+    });
+    syncGBLabels();
+  }
+  function syncGBLabels() {
+    const n = parseInt(document.getElementById('gbN').value);
+    const lr = parseInt(document.getElementById('gbLr').value)/100;
+    const d = parseInt(document.getElementById('gbDepth').value);
+    document.getElementById('gbNLabel').textContent = n;
+    document.getElementById('gbLrLabel').textContent = lr.toFixed(2);
+    document.getElementById('gbDepthLabel').textContent = d;
+  }
+  function drawGB() {
+    if (!gbCtx) return;
+    const n = parseInt(document.getElementById('gbN').value);
+    const lr = parseInt(document.getElementById('gbLr').value)/100;
+    const depth = parseInt(document.getElementById('gbDepth').value);
+    const cv = gbCtx.canvas, W = cv.width, H = cv.height;
+    gbCtx.clearRect(0,0,W,H);
+    const maxAUC = 0.58 + Math.min(depth*0.022,0.11) + Math.min(lr*0.4,0.05);
+    const overfit = lr > 0.15 && depth > 4;
+    const trainAUC=[], testAUC=[];
+    for (let i=0; i<=n; i++) {
+      const t = i/n;
+      trainAUC.push(Math.min(0.52+(maxAUC+0.04-0.52)*(1-Math.exp(-t*5)), 0.99));
+      let test = 0.52+(maxAUC-0.52)*(1-Math.exp(-t*4));
+      if (overfit && t>0.5) test -= (t-0.5)*0.07;
+      testAUC.push(Math.min(Math.max(test,0.50),0.99));
+    }
+    const pad={t:20,r:20,b:30,l:44}, pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+    const minY=0.50, maxY=0.82;
+    gbCtx.strokeStyle='#eee'; gbCtx.lineWidth=1;
+    for (let v=0.50; v<=0.82; v+=0.05) {
+      const y=pad.t+ph-(v-minY)/(maxY-minY)*ph;
+      gbCtx.beginPath(); gbCtx.moveTo(pad.l,y); gbCtx.lineTo(pad.l+pw,y); gbCtx.stroke();
+      gbCtx.fillStyle='#aaa'; gbCtx.font='10px Inconsolata';
+      gbCtx.fillText(v.toFixed(2),2,y+4);
+    }
+    [[trainAUC,'#b7e4c7'],[testAUC,'#5c4197']].forEach(([pts,col]) => {
+      gbCtx.beginPath(); gbCtx.strokeStyle=col; gbCtx.lineWidth=2;
+      pts.forEach((v,i) => {
+        const x=pad.l+i/n*pw, y=pad.t+ph-(v-minY)/(maxY-minY)*ph;
+        i===0?gbCtx.moveTo(x,y):gbCtx.lineTo(x,y);
+      }); gbCtx.stroke();
+    });
+    gbCtx.font='10px Inconsolata';
+    ['#b7e4c7','Train','#5c4197','Test'].forEach((v,i) => {
+      if (i%2===0) { gbCtx.fillStyle=v; gbCtx.fillRect(pad.l+i/2*65,H-16,12,8); }
+      else { gbCtx.fillStyle='#555'; gbCtx.fillText(v,pad.l+(i-1)/2*65+16,H-9); }
+    });
+    const finalAUC = testAUC[testAUC.length-1];
+    document.getElementById('gbAUC').textContent = finalAUC.toFixed(3);
+    document.getElementById('gbTrees').textContent = n;
+    const risk = overfit?'Alto':lr>0.1?'Medio':'Bajo';
+    document.getElementById('gbRisk').textContent = risk;
+    document.getElementById('gbRisk').style.color = overfit?'var(--danger)':lr>0.1?'var(--warn)':'var(--success)';
+  }
+
+  // ── XGB ANIMATION ─────────────────────────────────────────────────
+  let xgbRunning = false;
+  function drawXGBStatic() {
+    const cv = document.getElementById('xgbCanvas');
+    if (!cv) return;
+    drawXGBFrame(cv.getContext('2d'), 220, cv.width, cv.height);
+  }
+  function animateXGB() {
+    if (xgbRunning) return;
+    xgbRunning = true;
+    const cv = document.getElementById('xgbCanvas');
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
+    let f = 0;
+    function step() {
+      drawXGBFrame(ctx, f, cv.width, cv.height);
+      f++;
+      if (f <= 220) requestAnimationFrame(step);
+      else xgbRunning = false;
+    }
+    step();
+  }
+  window.animateXGB = animateXGB;
+
+  function drawXGBFrame(ctx, maxF, W, H) {
+    ctx.clearRect(0,0,W,H);
+    const N=220, stop=180;
+    const pad={t:20,r:20,b:30,l:44}, pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+    const minY=0.50, maxY=0.84;
+    ctx.strokeStyle='#eee'; ctx.lineWidth=1;
+    for (let v=0.50; v<=0.84; v+=0.05) {
+      const y=pad.t+ph-(v-minY)/(maxY-minY)*ph;
+      ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+pw,y); ctx.stroke();
+      ctx.fillStyle='#aaa'; ctx.font='10px Inconsolata'; ctx.fillText(v.toFixed(2),2,y+4);
+    }
+    const train=[], test=[];
+    for (let i=0; i<=N; i++) {
+      const t=i/N;
+      train.push(0.52+0.28*(1-Math.exp(-t*6)));
+      let ts=0.52+0.21*(1-Math.exp(-t*5));
+      if (i>stop) ts-=(i-stop)*0.0004;
+      test.push(Math.max(ts,0.50));
+    }
+    const end=Math.min(maxF,N);
+    [[train,'#b7e4c7'],[test,'#7b4f2e']].forEach(([pts,col]) => {
+      ctx.beginPath(); ctx.strokeStyle=col; ctx.lineWidth=2;
+      pts.slice(0,end+1).forEach((v,i) => {
+        const x=pad.l+i/N*pw, y=pad.t+ph-(v-minY)/(maxY-minY)*ph;
+        i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      }); ctx.stroke();
+    });
+    if (maxF>=stop) {
+      const sx=pad.l+stop/N*pw;
+      ctx.strokeStyle='#c0392b'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+      ctx.beginPath(); ctx.moveTo(sx,pad.t); ctx.lineTo(sx,pad.t+ph); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle='#c0392b'; ctx.font='9px Inconsolata'; ctx.fillText('early stop',sx-26,pad.t+10);
+    }
+    ctx.font='10px Inconsolata';
+    ctx.fillStyle='#b7e4c7'; ctx.fillRect(pad.l,H-16,12,8);
+    ctx.fillStyle='#555'; ctx.fillText('Train',pad.l+16,H-9);
+    ctx.fillStyle='#7b4f2e'; ctx.fillRect(pad.l+65,H-16,12,8);
+    ctx.fillStyle='#555'; ctx.fillText('Test',pad.l+81,H-9);
+  }
+
+  // ── COMPARACION ────────────────────────────────────────────────────
+  function drawCompBars() {
+    const models=[
+      {name:'CART baseline',auc:0.635,color:'#aaa'},
+      {name:'AdaBoost',     auc:0.645,color:'#2d6a4f'},
+      {name:'GBM',          auc:0.705,color:'#5c4197'},
+      {name:'XGBoost',      auc:0.730,color:'#7b4f2e'},
+    ];
+    const el=document.getElementById('compBars');
+    if (!el) return;
+    el.innerHTML = models.map(m => {
+      const pct=((m.auc-0.50)/0.50*100).toFixed(1);
+      return `<div class="error-row">
+        <div class="error-lbl">${m.name}</div>
+        <div class="error-bg"><div class="error-fill" style="width:${pct}%;background:${m.color}"></div></div>
+        <span style="font-family:'Inconsolata',monospace;font-size:0.75rem;width:46px;text-align:right;flex-shrink:0">${m.auc.toFixed(3)}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function drawComp() {
+    const cv=document.getElementById('compCanvas');
+    if (!cv) return;
+    const ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+    ctx.clearRect(0,0,W,H);
+    const models=[
+      {name:'CART',    year:1984,auc:0.635,color:'#aaa'},
+      {name:'AdaBoost',year:1995,auc:0.645,color:'#2d6a4f'},
+      {name:'GBM',     year:2001,auc:0.705,color:'#5c4197'},
+      {name:'XGBoost', year:2016,auc:0.730,color:'#7b4f2e'},
+    ];
+    const pad={t:20,r:20,b:36,l:50}, pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+    const minY=0.57, maxY=0.77, minX=1980, maxX=2020;
+    ctx.strokeStyle='#eee'; ctx.lineWidth=1;
+    for (let v=0.58; v<=0.76; v+=0.04) {
+      const y=pad.t+ph-(v-minY)/(maxY-minY)*ph;
+      ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+pw,y); ctx.stroke();
+      ctx.fillStyle='#aaa'; ctx.font='10px Inconsolata'; ctx.fillText(v.toFixed(2),2,y+4);
+    }
+    ctx.beginPath(); ctx.strokeStyle='#ddd'; ctx.lineWidth=1.5;
+    models.forEach((m,i) => {
+      const x=pad.l+(m.year-minX)/(maxX-minX)*pw;
+      const y=pad.t+ph-(m.auc-minY)/(maxY-minY)*ph;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }); ctx.stroke();
+    models.forEach(m => {
+      const x=pad.l+(m.year-minX)/(maxX-minX)*pw;
+      const y=pad.t+ph-(m.auc-minY)/(maxY-minY)*ph;
+      ctx.beginPath(); ctx.arc(x,y,6,0,Math.PI*2);
+      ctx.fillStyle=m.color; ctx.fill();
+      ctx.fillStyle=m.color; ctx.font='bold 10px Inconsolata'; ctx.fillText(m.name,x-16,y-10);
+      ctx.fillStyle='#888'; ctx.font='9px Inconsolata'; ctx.fillText(m.year,x-12,pad.t+ph+14);
+    });
+  }
+
+  // ── CODIGO TABS ────────────────────────────────────────────────────
+  function showCode(type) {
+    ['Ada','Gbm','Xgb','Comp'].forEach(t => {
+      const el=document.getElementById('code'+t);
+      if(el) el.style.display='none';
+    });
+    const map={ada:'Ada',gbm:'Gbm',xgb:'Xgb',comp:'Comp'};
+    const el=document.getElementById('code'+map[type]);
+    if(el) el.style.display='block';
+  }
+  window.showCode = showCode;
+
+})();
+</script>
+</body>
+</html>
